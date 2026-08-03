@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L-Charge Backoffice · UN-401 · Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --text:#0a0a0a; --text-2:#525252; --text-3:#757575;
+    --border:#e6e6e6; --g-50:#f5f5f5; --g-200:#e6e6e6; --g-300:#d6d6d6; --g-400:#a3a3a3;
+    --green:#1dcc6e; --green-surface:#edfcf4; --green-line:#a5ecc8; --green-ink:#0d7a44;
+    --danger:#f55451; --danger-surface:#fef1f1; --danger-line:#fbc4c3; --danger-ink:#8a2f2d;
+    --amber:#f7a916; --amber-surface:#fef8ec; --red:#c53027;
+    --r:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,-apple-system,sans-serif;color:var(--text);background:#fff;
+       font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+  button,select,input,textarea{font-family:inherit;font-size:14px;color:var(--text)}
+  button{cursor:pointer;border:none;background:none}
+  svg{display:block;flex:none}
+
+  /* ============ TOP BAR ============ */
+  .topbar{display:flex;align-items:center;gap:30px;padding:14px 24px;border-bottom:1px solid var(--border)}
+  .logo{display:flex;align-items:center;gap:9px}
+  .logo .wm{font-weight:700;letter-spacing:-.03em;font-size:17px}
+  .logo .bo{font-size:9px;font-weight:600;background:var(--text);color:#fff;padding:2px 5px;border-radius:2px;letter-spacing:.08em}
+  .nav{display:flex;gap:2px;flex:1}
+  .nav button{padding:7px 13px;border-radius:7px;color:var(--text-2);display:flex;align-items:center;gap:5px}
+  .nav button:hover{background:#fafafa}
+  .nav button.on{background:var(--g-50);color:var(--text);font-weight:500}
+  .me{display:flex;align-items:center;gap:9px;color:var(--text)}
+  .me .av{width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;
+          display:grid;place-items:center;font-size:11px;font-weight:600}
+
+  /* ============ SUB HEADER ============ */
+  .page{padding:18px 24px 80px}
+  .pager{display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:13px}
+  .sq{width:32px;height:32px;border:1px solid var(--border);border-radius:var(--r);display:grid;place-items:center;color:var(--text-2)}
+  .sq:hover{background:var(--g-50)}
+  .pager span{margin-left:6px}
+
+  .uhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin:22px 0 4px}
+  .uleft{display:flex;gap:14px;align-items:flex-start}
+  .uicon{width:40px;height:40px;border-radius:50%;background:var(--g-50);display:grid;place-items:center;color:var(--text-2);flex:none}
+  .utitle{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .utitle h1{font-size:22px;font-weight:600;letter-spacing:-.025em}
+  .tag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:7px;
+       padding:3px 9px;font-size:13px;color:var(--text-3)}
+  .umeta{display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:13.5px;margin-top:7px}
+  .umeta .sep{color:var(--g-300)}
+  .uacts{display:flex;gap:8px;flex:none}
+  .obtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--r);
+        padding:8px 13px;font-weight:500;background:#fff;white-space:nowrap}
+  .obtn:hover{background:var(--g-50)}
+  .obtn svg{color:var(--text-2)}
+
+  /* ============ TABS ============ */
+  .tabs{display:flex;gap:28px;border-bottom:1px solid var(--border);margin:22px 0 26px}
+  .tabs button{padding:0 0 12px;color:var(--text-2);border-bottom:2px solid transparent;margin-bottom:-1px;font-size:15px}
+  .tabs button:hover{color:var(--text)}
+  .tabs button.on{color:var(--text);font-weight:500;border-color:var(--text)}
+
+  /* ============ LAYOUT ============ */
+  .cols{display:grid;grid-template-columns:170px minmax(0,1fr);gap:36px;align-items:start}
+  .subnav{display:flex;flex-direction:column;gap:2px;position:sticky;top:18px}
+  .subnav button{text-align:left;padding:9px 13px;border-radius:var(--r);color:var(--text-2)}
+  .subnav button:hover{background:#fafafa;color:var(--text)}
+  .subnav button.on{background:var(--g-50);color:var(--text);font-weight:500}
+  /* группа History: заголовок с шевроном + вложенные пункты */
+  .navgroup{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;
+    text-align:left;padding:9px 13px;border-radius:var(--r);color:var(--text-2)}
+  .navgroup:hover{background:#fafafa;color:var(--text)}
+  .navgroup.active{color:var(--text);font-weight:500}
+  .navgroup .chev{transition:transform .15s;color:var(--text-3)}
+  .navgroup.open .chev{transform:rotate(180deg)}
+  .navkids{display:flex;flex-direction:column;gap:2px;margin:2px 0 2px 12px;padding-left:11px;
+    border-left:1px solid var(--border);overflow:hidden}
+  .navkids button{padding:8px 12px;font-size:13.5px}
+  .navkids button .ro{font-size:11px;color:var(--g-400);margin-left:6px;font-weight:400}
+  .navkids button.on .ro{color:var(--text-3)}
+
+  h2{font-size:20px;font-weight:600;letter-spacing:-.02em}
+  .lead{color:var(--text-2);margin-top:5px;font-size:14px}
+  .hr{height:1px;background:var(--border);margin:22px 0}
+
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:var(--r);font-weight:500;white-space:nowrap}
+  .btn-p{background:var(--text);color:#fff}
+  .btn-p:hover:not(:disabled){background:#262626}
+  .btn-p:disabled{background:var(--g-300);cursor:not-allowed}
+  .btn-g{border:1px solid var(--border);background:#fff}
+  .btn-g:hover:not(:disabled){background:var(--g-50)}
+  .btn-d{background:var(--red);color:#fff}
+
+  /* ============ FORM ROWS ============ */
+  .frow{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:40px;padding:4px 0}
+  .fl h3{font-size:15px;font-weight:600;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .fl p{color:var(--text-2);margin-top:7px;font-size:13.5px;line-height:1.5}
+  .bo-only{font-size:12px;font-weight:400;color:var(--text-3);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
+  .fr{display:flex;flex-direction:column;gap:16px;max-width:560px}
+  label{display:block;font-size:13.5px;color:var(--text-2);margin-bottom:6px}
+  .ctrl{width:100%;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;background:#fff}
+  .ctrl::placeholder{color:var(--g-400)}
+  .ctrl:focus{outline:2px solid var(--text);outline-offset:-1px}
+  select.ctrl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23757575' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 11px center;padding-right:34px}
+  .dtrow{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px}
+  .withic{position:relative}
+  .withic svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;z-index:1}
+  .withic .ctrl{padding-left:36px}
+  /* нативная иконка date/time дублировала бы нашу слева: делаем её прозрачной
+     и растягиваем на всё поле — клик по полю по-прежнему открывает пикер */
+  .withic .ctrl::-webkit-calendar-picker-indicator{
+    position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
+  .ctrl:disabled{background:var(--g-50);color:var(--text-3);cursor:not-allowed}
+  .withic .ctrl:disabled ~ svg,
+  .withic:has(.ctrl:disabled) svg{color:var(--g-400)}
+  .align-r{display:flex;justify-content:flex-end}
+  .mapbox{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;height:290px;position:relative;background:#eae5dc}
+  .mapzoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;background:#fff;border-radius:5px;
+    box-shadow:0 1px 4px rgba(0,0,0,.3);overflow:hidden}
+  .mapzoom button{width:28px;height:28px;display:grid;place-items:center;color:#666}
+  .mapzoom button+button{border-top:1px solid #e6e6e6}
+  .swrow{display:flex;justify-content:space-between;align-items:flex-start;gap:30px}
+  .switch{width:42px;height:24px;border-radius:12px;background:var(--g-300);position:relative;flex:none;transition:background .15s}
+  .switch.on{background:var(--green)}
+  .switch:disabled{opacity:.45;cursor:not-allowed}
+  .switch i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;
+    box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  .switch.on i{left:20px}
+
+  /* ============ TABLE ============ */
+  .thead{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:14px}
+  .thead h3{font-size:15px;font-weight:600}
+  .thead .h{color:var(--text-2);font-size:13.5px;margin-top:3px}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-weight:400;color:var(--text-2);font-size:14px;padding:0 14px 12px 0;border-bottom:1px solid var(--border)}
+  th .sort{display:inline-flex;align-items:center;gap:5px;color:var(--text-2)}
+  th .sort:hover{color:var(--text)}
+  td{padding:16px 14px 16px 0;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr:hover{background:#fcfcfc}
+  .stat{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .dot.ok{background:var(--green)} .dot.no{background:var(--danger)}
+  .nowtag{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:500;margin-left:10px;white-space:nowrap}
+  .muted{color:var(--text-3)}
+  /* строки-разрывы: период, когда партнёр/сайт не были назначены */
+  tr.gaprow td{color:var(--g-400);background:#fcfcfc}
+  tr.gaprow:hover td{background:var(--g-50)}
+  .kb{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:var(--text-3);margin-left:auto}
+  .kb:hover,.kb.open{background:var(--g-50);color:var(--text-2)}
+  td.act{width:52px;padding-right:0}
+  .menu{position:absolute;background:#fff;border:1px solid var(--border);border-radius:10px;
+        box-shadow:0 8px 28px rgba(0,0,0,.12);padding:5px;min-width:172px;z-index:60}
+  .menu button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:6px;color:var(--text)}
+  .menu button:hover{background:var(--g-50)}
+  .menu button.q{color:var(--text-3)}
+  .menu button.q:hover{color:var(--red);background:var(--danger-surface)}
+  @keyframes fl{0%,50%{background:#fffbeb}100%{background:transparent}}
+  tr.fresh td{animation:fl 1.8s ease}
+
+  /* ============ CURRENT STATE CARD ============ */
+  .cs{border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:30px}
+  .cs .top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+  .cs .eb{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);font-weight:600}
+  .cs .lb{font-size:20px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:10px;margin-top:8px}
+  .cs .lb .dot{width:9px;height:9px}
+  .cs .mt{color:var(--text-2);margin-top:8px;font-size:13.5px}
+  .cs .cm{color:var(--text-2);margin-top:5px;font-size:13.5px}
+  .cs .acts{display:flex;gap:8px;flex:none}
+  .gate{margin-top:15px;border-radius:var(--r);padding:11px 13px;font-size:13.5px;line-height:1.5;
+        background:var(--amber-surface);color:#7a5200}
+  .gate ul{list-style:none;margin-top:6px;display:flex;flex-direction:column;gap:3px}
+  .gate li::before{content:"○ "}
+  .gate u{cursor:pointer}
+
+  .foot{background:var(--g-50);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--text-2);
+        line-height:1.55;margin-top:18px}
+  .foot b{color:var(--text);font-weight:600}
+
+  /* ============ MODAL ============ */
+  .bd{position:fixed;inset:0;background:rgba(10,10,10,.4);display:none;place-items:center;z-index:90;padding:24px}
+  .bd.on{display:grid}
+  .md{background:#fff;border-radius:14px;width:min(520px,100%);box-shadow:0 24px 70px rgba(0,0,0,.24);max-height:92vh;overflow:auto}
+  .md header{padding:22px 24px 0} .md h3{font-size:17px;font-weight:600}
+  .md .b{padding:18px 24px 6px;display:flex;flex-direction:column;gap:16px}
+  .md footer{padding:18px 24px 22px;display:flex;justify-content:flex-end;gap:9px}
+  .md.record-md{width:min(680px,100%)}
+  .record-md header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-top:24px}
+  .record-md h3{font-size:22px;letter-spacing:-.025em;line-height:1.15}
+  .modal-close{width:36px;height:36px;margin:-8px -8px 0 0;border-radius:8px;color:var(--text-2);display:grid;place-items:center;flex:none}
+  .modal-close:hover{background:var(--g-50);color:var(--text)}
+  .modal-close svg{width:23px;height:23px}
+  .record-intro{font-size:16px;line-height:1.5;text-wrap:pretty}
+  .record-details{background:var(--g-50);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:20px}
+  .record-details .adet-h{margin-bottom:2px}
+  .record-details .adet-h h4{font-size:16px;color:var(--text)}
+  .record-details .bo-only{background:#fff;white-space:nowrap}
+  .record-details #rzn,.record-details #dates{display:flex;flex-direction:column;gap:16px}
+  .tofield{position:relative}
+  .tofield .ctrl{padding-right:46px}
+  .to-shortcut{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:6px;color:var(--text-2);display:grid;place-items:center;z-index:2}
+  .to-shortcut:hover{background:#fff;color:var(--text)}
+  .to-shortcut:disabled{opacity:.35;cursor:not-allowed}
+  .to-shortcut svg{width:20px;height:20px}
+  .record-check{display:inline-flex;align-items:center;gap:9px;color:var(--text);font-size:14px;cursor:pointer}
+  .record-check input{width:18px;height:18px;accent-color:var(--text);cursor:pointer}
+  .record-check input:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+  .field-error .ctrl{border-color:var(--danger)}
+  .field-error .ctrl:focus{outline-color:var(--danger)}
+  .field-msg{display:flex;align-items:flex-start;gap:7px;margin-top:7px;color:var(--danger);font-size:12.5px;line-height:1.4}
+  .field-msg svg{width:16px;height:16px;flex:none;margin-top:1px}
+  .affect-alert{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid #eadfcb;border-radius:10px;background:#fffaf1;color:var(--text);line-height:1.45}
+  .affect-alert svg{width:22px;height:22px;margin-top:1px;flex:none}
+  .affect-alert strong{display:block;font-size:14px;font-weight:600}
+  .affect-alert span{display:block;margin-top:3px;color:var(--text-2);font-size:13px}
+  .record-md footer{padding-top:20px}
+  .hint{font-size:12.5px;color:var(--text-3);margin-top:6px;line-height:1.45}
+  .was{background:var(--g-50);border-radius:var(--r);padding:11px 13px;font-size:13px;color:var(--text-2);line-height:1.5}
+  .was b{color:var(--text)}
+  .err{background:var(--danger-surface);color:var(--red);border-radius:var(--r);padding:11px 13px;font-size:13px;line-height:1.5}
+  .warn{background:var(--amber-surface);color:#7a5200;border-radius:var(--r);padding:11px 13px;font-size:13px;line-height:1.5}
+  .warn u{cursor:pointer}
+  .pv{border:1px solid var(--border);border-radius:10px;padding:14px;background:#fcfcfc}
+  .pv .cap{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);font-weight:600;margin-bottom:10px}
+  .bar{display:flex;height:26px;border-radius:6px;overflow:hidden;gap:2px}
+  .bar .sg{display:grid;place-items:center;font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;padding:0 5px}
+  .sg.o{background:var(--danger-line);color:#8a2f2d} .sg.n{background:var(--danger);color:#fff}
+  .ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:6px}
+  .pvt{font-size:12.5px;color:var(--text-2);line-height:1.55;margin-top:11px}
+  .pvt b{color:var(--text);font-weight:600}
+  .pvt.w{background:var(--amber-surface);color:#7a5200;border-radius:7px;padding:10px 12px}
+
+  /* --- перенос из variant B: бейдж Current, сегмент-контрол, превью-бары --- */
+  /* статус + бейдж Current в один ряд, без переноса */
+  .statuscell{display:flex;align-items:center;gap:10px;white-space:nowrap}
+  .curtag{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:500;white-space:nowrap}
+  .seg{display:flex;background:var(--g-50);border-radius:9px;padding:3px;gap:2px}
+  .seg button{flex:1;padding:8px 10px;border-radius:6px;color:var(--text-2);font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:7px}
+  .seg button.on{background:#fff;color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.09)}
+  .pvrow{margin-bottom:10px}
+  .pvrow .lab{font-size:11.5px;color:var(--text-3);margin-bottom:4px}
+  .bar .sg{display:grid;place-items:center;font-size:10.5px;font-weight:500;white-space:nowrap;overflow:hidden;padding:0 4px;min-width:2px}
+  .sg.ok{background:var(--green-line);color:var(--green-ink)}
+  .sg.no{background:var(--danger-line);color:var(--danger-ink)}
+  .sg.ok.nw{background:var(--green);color:#fff}
+  .sg.no.nw{background:var(--danger);color:#fff}
+  textarea.ctrl{resize:vertical;min-height:62px;line-height:1.45}
+
+  /* dev-панель: сворачивается в иконку-шестерёнку */
+  /* collapsible preview в диалогах (What happens скрыт по умолчанию) */
+  details.pv{padding:0;overflow:hidden}
+  details.pv > summary.pvcap{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+    padding:11px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);font-weight:600;margin:0}
+  details.pv > summary.pvcap::-webkit-details-marker{display:none}
+  details.pv > summary.pvcap::after{content:'';width:14px;height:14px;margin-left:auto;transition:transform .15s;
+    background:no-repeat center/contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23757575' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>")}
+  details.pv[open] > summary.pvcap::after{transform:rotate(180deg)}
+  details.pv > summary.pvcap:hover{background:var(--g-50);color:var(--text-2)}
+  .pvinner{padding:0 14px 14px}
+  /* inline-редактор статуса в General + остров сохранения */
+  .gedit{display:flex;flex-direction:column;gap:14px;margin-top:16px;
+    padding:16px;border:1px solid var(--border);border-radius:10px;background:#fcfcfc}
+  /* ---- блок Availability details ---- */
+  .adet{display:flex;flex-direction:column;gap:16px;margin-top:16px;
+    padding:18px 20px;border-radius:10px;background:var(--g-50)}
+  .adet-h{display:flex;justify-content:space-between;align-items:center;gap:16px}
+  .adet-h h4{font-size:14.5px;font-weight:600}
+  .adet-h .bo-only{background:#fff}
+  .opt{color:var(--text-3);font-weight:400}
+  /* поля деталей: белые пока активны, гаснут когда записывать нечего */
+  .adet .ctrl:disabled{background:#ededed;border-color:#e2e2e2;color:var(--text-3);cursor:not-allowed}
+  .adet .withic:has(.ctrl:disabled) svg{color:var(--g-400)}
+  .fhint{display:flex;align-items:flex-start;gap:7px;margin-top:7px;
+    font-size:12.5px;color:var(--text-3);line-height:1.45}
+  .fhint svg{flex:none;margin-top:1px}
+  .adalert{display:flex;align-items:flex-start;gap:14px;margin-top:2px;padding:16px 18px;border:1px solid #eadfcb;
+    border-radius:10px;background:#fffaf1;color:var(--text);font-size:14.5px;font-weight:600;line-height:1.45}
+  .adalert svg{width:22px;height:22px;margin-top:1px;flex:none}
+  /* сегмент-контрол в строке со статусом — по содержимому, а не на всю ширину */
+  .seg-inline{flex:none}
+  .seg-inline button{flex:none;padding:7px 14px}
+  /* ---- вариант A1: read-first карточка текущего статуса ---- */
+  .fr .cs{margin-bottom:0;padding:16px 18px}
+  .fr .cs .acts{flex-direction:column;align-items:flex-end;gap:8px}
+  .fr .cs .lb{font-size:16px;letter-spacing:-.01em;margin-top:0}
+  .fr .cs .lb .dot{width:8px;height:8px}
+  .fr .cs .mt{margin-top:7px}
+  .gacts{display:flex;justify-content:flex-end;gap:9px}
+  .seg button:disabled{opacity:.4;cursor:not-allowed}
+  .devnav button{cursor:pointer}
+  .island{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:75;
+    display:flex;align-items:center;gap:22px;background:#fff;border:1px solid var(--border);
+    border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.16);padding:12px 14px 12px 18px}
+  .island-msg{display:flex;align-items:center;gap:9px;font-weight:500;font-size:14px;white-space:nowrap}
+  .island-msg svg{color:var(--text-2)}
+  .island-acts{display:flex;gap:9px}
+  .devsub{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);font-weight:600;margin:2px 0 5px}
+  .devnav{display:flex;flex-direction:column;gap:2px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+  .devnav button{padding:7px 9px;border-radius:6px;color:var(--text-2);font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap;text-align:left}
+  .devnav button:hover{background:var(--g-50);color:var(--text)}
+  .devnav button:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+  .devnav button.on,.devnav button.on:hover{background:var(--text);color:#fff}
+  .devwrap{position:fixed;right:16px;bottom:16px;z-index:70}
+  .devtoggle{width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--border);
+    box-shadow:0 6px 24px rgba(0,0,0,.14);display:grid;place-items:center;color:var(--text-2);margin-left:auto}
+  .devtoggle:hover{background:var(--g-50);color:var(--text)}
+  .dev{width:250px;background:#fff;border:1px solid var(--border);border-radius:10px;
+    box-shadow:0 8px 30px rgba(0,0,0,.14);padding:13px 15px;font-size:12.5px;margin-bottom:10px;display:none}
+  .devwrap.open .dev{display:block}
+  .devwrap.open .devtoggle{background:var(--g-50);color:var(--text)}
+  .dev .devhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+  .dev h4{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600}
+  .dev .devclose{color:var(--text-3);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px}
+  .dev .devclose:hover{background:var(--g-50);color:var(--text)}
+  .dev label{display:flex;gap:8px;align-items:flex-start;margin:0 0 8px;color:var(--text-2);cursor:pointer;line-height:1.4;font-size:12.5px}
+  .dev input{margin-top:2px;accent-color:var(--text)}
+  .dev .rs{width:100%;border:1px solid var(--border);border-radius:6px;padding:6px}
+  .dev .rs:hover{background:var(--g-50)}
+  /* переключатель версий прототипа */
+  .vswitch{position:fixed;left:16px;bottom:16px;z-index:70;display:inline-flex;background:#fff;
+    border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.12);padding:4px;gap:2px}
+  .vswitch a{padding:7px 13px;border-radius:7px;color:var(--text-2);font-size:13px;font-weight:500;white-space:nowrap}
+  .vswitch a:hover{background:var(--g-50);color:var(--text)}
+  .vswitch a.on{background:var(--text);color:#fff}
+  .vswitch a.on:hover{background:var(--text)}
+  @media(max-width:1000px){.cols{grid-template-columns:1fr}.devwrap{display:none}.vswitch{display:none}.frow{grid-template-columns:1fr;gap:16px}}
+  @media(max-width:560px){.bd{padding:12px}.record-details{padding:16px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}.record-details .adet-h{align-items:flex-start;flex-direction:column;gap:8px}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 2l3.2 6.8L22 12l-6.8 3.2L12 22l-3.2-6.8L2 12l6.8-3.2z" fill="#1dcc6e"/></svg>
+    <div class="wm">L-CHARGE</div>
+    <span class="bo">BACKOFFICE</span>
+  </div>
+  <div class="nav">
+    <button>Home</button><button>Charges</button><button>Clients</button><button>Sites</button>
+    <button class="on">Units</button><button>Reports</button><button>Incidents</button>
+    <button>Settings <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+  </div>
+  <div class="me"><span class="av">NS</span> Nick Smith
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#757575" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+</div>
+
+<div class="page">
+  <div class="pager">
+    <button class="sq"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+    <button class="sq"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg></button>
+    <button class="sq"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+    <span>1 of 24 charging units</span>
+  </div>
+
+  <div class="uhead">
+    <div class="uleft">
+      <div class="uicon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+        <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M13 7l-4 6h3l-1 4 4-6h-3z" fill="currentColor" stroke="none"/></svg></div>
+      <div>
+        <div class="utitle">
+          <h1>UN-401</h1>
+          <span class="tag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Acme Corp</span>
+        </div>
+        <div class="umeta">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h4M7 12h4M7 16h4"/></svg>
+          Tower Mission 1 <span class="sep">·</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          10 West Beaver Ridge St, CA 95376, United States
+        </div>
+      </div>
+    </div>
+    <div class="uacts">
+      <button class="obtn">Monitoring <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></button>
+      <button class="obtn">Cloud logs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></button>
+      <button class="obtn">System logs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></button>
+      <button class="obtn">Actions <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button>Overview</button><button>Charges</button><button>Incidents</button><button class="on">Settings</button>
+  </div>
+
+  <div class="cols">
+    <div class="subnav" id="subnav"></div>
+    <div id="main"></div>
+  </div>
+</div>
+
+<div class="bd" id="bd"><div class="md" id="md"></div></div>
+
+<div class="devwrap" id="devwrap">
+<div class="dev">
+  <div class="devhead"><h4>Prototype controls</h4><button class="devclose" id="devClose" title="Свернуть">✕</button></div>
+  <div class="devsub">Availability control</div>
+  <div class="devnav" id="ctlVar">
+    <button type="button" data-v="toggle" class="on">A1 · Toggle</button>
+    <button type="button" data-v="seg">A2 · Segment control</button>
+  </div>
+  <div class="devsub">Availability details</div>
+  <div class="devnav" id="detailsVar">
+    <button type="button" data-v="hint" class="on">V1 · Inline note</button>
+    <button type="button" data-v="alert">V2 · Alert block</button>
+  </div>
+  <div class="devsub">History tables · dates</div>
+  <div class="devnav" id="dateVar">
+    <button type="button" data-v="single" class="on">One column · from-to</button>
+    <button type="button" data-v="split">Two columns · starts / ends</button>
+  </div>
+  <label><input type="checkbox" id="cSession"> Active charging session on Charger 01</label>
+  <label><input type="checkbox" id="cFields" checked> Partner / Location / Rate filled</label>
+  <label><input type="checkbox" id="cClock" checked> Live clock (real date &amp; time)</label>
+  <button class="rs" id="cReset">Reset data</button>
+</div>
+<button class="devtoggle" id="devToggle" title="Prototype controls"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+</div>
+
+<script>
+/* =========================== MODEL =========================== */
+/* ---- Часы прототипа ---------------------------------------------------
+   Все демо-данные написаны относительно ANCHOR. При живых часах история
+   сдвигается на разницу между ANCHOR и реальным «сейчас»: форма данных
+   сохраняется, но текущая запись всегда выглядит свежей.
+   Заморозка (dev-панель) возвращает фиксированное время — удобно для
+   скриншотов и повторяемых демо. */
+const ANCHOR   = '2026-07-16T14:20';
+const ADDED_AT = '2026-01-25T09:52';
+let liveClock = true;
+let SHIFT = 0;              /* мс между ANCHOR и «сейчас» */
+let NOW = ANCHOR;
+let UNIT_ADDED = ADDED_AT;
+const pad2 = n => String(n).padStart(2,'0');
+const isoMin = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+const realNow = () => isoMin(new Date());
+/* перенос демо-даты в актуальное окно времени */
+const shift = ts => ts == null ? ts : isoMin(new Date(new Date(ts).getTime() + SHIFT));
+/* Сдвиг демо-данных считаем целыми сутками: так сохраняется «круглое»
+   время суток (11:00, 9:15), а не съезжает на случайные минуты.
+   Если при этом якорь оказался бы в будущем (смотрим прототип рано утром) —
+   отступаем ещё на сутки, чтобы вся история осталась в прошлом. */
+function computeShift(){
+  if(!liveClock) return 0;
+  const a = new Date(ANCHOR), n = new Date(realNow());
+  const day = 86400000;
+  const d0 = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const d1 = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  let s = Math.round((d1 - d0) / day) * day;
+  if(new Date(a.getTime() + s) > n) s -= day;
+  return s;
+}
+/* NOW пересчитывается перед каждым рендером и перед валидацией */
+function tick(){ NOW = liveClock ? realNow() : ANCHOR; }
+const ME = 'Nick Smith';
+const REASONS = ['Down','On Hold','Planned Maintenance'];
+const SESSIONS = [
+  {id:'CH-1201', from:'2026-06-10T09:10', to:shift('2026-06-10T10:05')},
+  {id:'CH-1202', from:'2026-06-10T12:00', to:shift('2026-06-10T13:20')},
+  {id:'CH-1350', from:'2026-07-14T11:00', to:shift('2026-07-14T11:45')},
+];
+let seq, recs, fresh = null;
+function seed(){
+  SHIFT = computeShift();
+  tick();
+  UNIT_ADDED = shift(ADDED_AT);
+  seq = 20;
+  recs = [
+    {id:1,  from:shift('2026-01-25T09:52'), to:shift('2026-02-03T11:00'), st:'no', reason:'Unit added', comment:'', by:'System', system:true},
+    {id:2,  from:shift('2026-02-03T11:00'), to:shift('2026-05-20T14:30'), st:'ok', by:'Nick Smith'},
+    {id:3,  from:shift('2026-05-20T14:30'), to:shift('2026-05-22T09:00'), st:'no', reason:'Down', comment:'Connector 01 overheating', by:'Nick Smith'},
+    {id:4,  from:shift('2026-05-22T09:00'), to:shift('2026-05-24T18:00'), st:'ok', by:'Nick Smith'},
+    {id:5,  from:shift('2026-05-24T18:00'), to:shift('2026-05-25T12:00'), st:'no', reason:'Planned Maintenance', comment:'Firmware v1.1.0', by:'Anna K.'},
+    {id:6,  from:shift('2026-05-25T12:00'), to:shift('2026-06-10T08:00'), st:'ok', by:'Anna K.'},
+    {id:7,  from:shift('2026-06-10T08:00'), to:shift('2026-06-10T16:30'), st:'no', reason:'On Hold', comment:'Partner payment overdue', by:'Nick Smith'},
+    {id:8,  from:shift('2026-06-10T16:30'), to:shift('2026-07-14T10:00'), st:'ok', by:'Nick Smith'},
+    {id:9,  from:shift('2026-07-14T10:00'), to:shift('2026-07-16T09:15'), st:'no', reason:'Down', comment:'PLC not responding', by:'Anna K.'},
+    {id:10, from:shift('2026-07-16T09:15'), to:shift('2026-07-16T11:00'), st:'ok', by:'Anna K.'},
+    {id:11, from:shift('2026-07-16T11:00'), to:null,                      st:'no', reason:'Down', comment:'Connector 02 no output', by:'Nick Smith'},
+  ];
+}
+seed();
+const sc = {session:false, fields:true};
+let page = 'availability';
+/* контрол статуса в блоке Availability: 'toggle' (тумблер) | 'seg' (сегмент-контрол) */
+let availCtl = 'toggle';
+/* подсказка при смене причины без смены статуса: 'hint' (строка под reason) | 'alert' (блок внизу) */
+let detailNote = 'hint';
+/* колонки дат в таблицах History: 'single' (from-to) | 'split' (Starts from / Ends) */
+let dateCols = 'single';
+
+/* =========================== UTILS =========================== */
+const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const p2 = n => String(n).padStart(2,'0');
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* Единый формат: без ведущего нуля у часов — Jul 16, 9:15.
+   Год показываем только для прошедших лет: для текущего он и так очевиден. */
+const fmt = ts => { if(!ts) return 'Now'; const d = new Date(ts);
+  const yr = d.getFullYear() === new Date(NOW).getFullYear() ? '' : `, ${d.getFullYear()}`;
+  return `${M[d.getMonth()]} ${d.getDate()}${yr}, ${d.getHours()}:${p2(d.getMinutes())}`; };
+const shrt = ts => { const d = new Date(ts);
+  return `${M[d.getMonth()]} ${d.getDate()}, ${d.getHours()}:${p2(d.getMinutes())}`; };
+const tm = ts => { const d = new Date(ts); return `${d.getHours()}:${p2(d.getMinutes())}`; };
+function dur(a,b){
+  const m = Math.floor((new Date(b||NOW) - new Date(a))/60000);
+  const d = Math.floor(m/1440), h = Math.floor((m%1440)/60), mm = m%60;
+  if(d) return `${d}d ${h}h`; if(h) return `${h}h ${mm}m`; return `${mm}m`;
+}
+const mn = (a,b) => Math.max(1, Math.floor((new Date(b||NOW) - new Date(a))/60000));
+const ovl = (a1,a2,b1,b2) => a1 < b2 && b1 < a2;
+const dpart = ts => ts.slice(0,10), tpart = ts => ts.slice(11,16);
+const join = (d,t) => (d&&t) ? `${d}T${t}` : '';
+
+const sorted = () => [...recs].sort((a,b)=>a.from<b.from?-1:1);
+const cur = () => recs.find(r => r.to === null);
+const label = r => r.st === 'ok' ? 'Available' : (r.reason ? `Unavailable · ${r.reason}` : 'Unavailable');
+/* Записи различают статус и причина. Комментарий — не различитель:
+   два одинаковых статуса подряд недопустимы, даже с разными комментариями. */
+const same = (a,b) => a.st === b.st && (a.reason||'') === (b.reason||'');
+
+
+/* Вставка интервала: режет всё, что попало под него. Дыр не бывает
+   по построению — поэтому правило непрерывности из брифа здесь невыразимо. */
+function simulateInsert(from, to, st, reason, comment){
+  const closed = sorted().filter(r => r.to !== null);
+  const out = [], eaten = [], cut = [];
+  for(const r of closed){
+    if(r.to <= from || r.from >= to){ out.push({...r}); continue; }
+    if(r.from >= from && r.to <= to){ eaten.push(r); continue; }
+    if(r.from < from && r.to > to){ out.push({...r, to:from}); out.push({...r, id:'s'+r.id, from:to}); cut.push(r); continue; }
+    if(r.from < from){ out.push({...r, to:from}); cut.push(r); continue; }
+    out.push({...r, from:to}); cut.push(r);
+  }
+  out.push({id:'new', from, to, st, reason, comment:comment||'', by:ME, isNew:true});
+  out.sort((a,b)=>a.from<b.from?-1:1);
+  const c = cur();
+  return {list:[...out, {...c}], eaten, cut};
+}
+/* Смежные одинаковые — это не ошибка, а одна запись. Нормализуем. */
+function normalize(list){
+  const out = [], merged = [];
+  for(const r of list){
+    const last = out[out.length-1];
+    if(last && same(last, r)){ merged.push(r); last.to = r.to; last.isNew = last.isNew || r.isNew; }
+    else out.push({...r});
+  }
+  return {list:out, merged};
+}
+function bar(list, w0, w1){
+  return `<div class="bar">${list.filter(r => (r.to||NOW) > w0 && r.from < w1).map(r => {
+    const a = r.from < w0 ? w0 : r.from, b = (r.to||NOW) > w1 ? w1 : (r.to||NOW);
+    return `<div class="sg ${r.st}${r.isNew?' nw':''}" style="flex:${mn(a,b)}">${r.st==='ok'?'Available':(esc(r.reason)||'Unavailable')}</div>`;
+  }).join('')}</div>`;
+}
+
+const IC = {
+  pen:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>`,
+  bin:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>`,
+  sort:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>`,
+  chk:`<svg width="15" height="15" viewBox="0 0 24 24" fill="#1dcc6e"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5 5-5.5" fill="none" stroke="#fff" stroke-width="2"/></svg>`,
+  dots:`<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>`,
+  cal:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
+  clk:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
+  info:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>`,
+  err:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3.2L22 20.5H2L12 3.2z"/><path d="M12 8.2v6.2M12 17.7h.01" stroke-linecap="round"/></svg>`,
+  warn:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2L22 20.5H2L12 3.2z" fill="#f7a916"/><path d="M12 8.2v6.2M12 17.7h.01" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/></svg>`,
+  pin:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
+};
+
+function removedAvailabilityAlert(count = 1){
+  const plural = count > 1;
+  return `<div class="affect-alert" role="status">${IC.warn}<div><strong>${plural ? 'Several availability records will be removed' : 'An availability record will be removed'}</strong><span>Records that fall within the new effective period will be removed.</span></div></div>`;
+}
+
+/* =========================== NAV =========================== */
+/* Верхний уровень: General, Operational, History(группа).
+   Внутри History — Partners, Sites, Availability (editable) + SoC limit, OCPP client (read-only). */
+const TOP = [{k:'general', n:'General'}, {k:'operational', n:'Operational'}];
+const HISTORY_KIDS = [
+  {k:'partners', n:'Partners'},
+  {k:'sites', n:'Sites'},
+  {k:'availability', n:'Availability'},
+];
+const HISTORY_KEYS = HISTORY_KIDS.map(k => k.k);
+function renderNav(){
+  const inHistory = HISTORY_KEYS.includes(page);
+  const kids = HISTORY_KIDS.map(k =>
+    `<button data-p="${k.k}" class="${page===k.k?'on':''}">${k.n}</button>`).join('');
+  document.getElementById('subnav').innerHTML =
+    TOP.map(p => `<button data-p="${p.k}" class="${page===p.k?'on':''}">${p.n}</button>`).join('') +
+    `<button class="navgroup ${inHistory?'active open':''}" id="navHistory">
+       <span>History</span>
+       <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+     </button>
+     ${inHistory ? `<div class="navkids">${kids}</div>` : ''}`;
+  document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { page = b.dataset.p; render(); });
+  // клик по заголовку History ведёт на первый вложенный пункт (если мы ещё не внутри)
+  document.getElementById('navHistory').onclick = () => {
+    if(!HISTORY_KEYS.includes(page)) page = HISTORY_KIDS[0].k;
+    render();
+  };
+}
+
+/* =========================== AVAILABILITY =========================== */
+/* ---- таблицы History: даты одной колонкой или двумя ---- */
+/* Заголовок периода: либо «X from-to», либо пара «Starts from» / «Ends» */
+const dcHead = (single, w) => dateCols === 'split'
+  ? `<th style="width:190px"><button class="sort">Starts from ${IC.sort}</button></th><th style="width:190px">Ends</th>`
+  : `<th style="width:${w}px"><button class="sort">${single} ${IC.sort}</button></th>`;
+/* Ячейки периода. to === null — период продолжается, показываем «Now» */
+const dcCell = (from, to) => dateCols === 'split'
+  ? `<td>${fmt(from)}</td><td${to===null?' class="muted"':''}>${fmt(to)}</td>`
+  : `<td>${fmt(from)} – ${fmt(to)}</td>`;
+
+/* Партнёры и сайты, в отличие от availability, НЕ непрерывны: между назначениями
+   бывают промежутки, когда партнёр/сайт не заданы. Достраиваем их явными строками. */
+function withGaps(list){
+  const asc = [...list].sort((a,b) => a.from < b.from ? -1 : 1);
+  const out = [];
+  asc.forEach((r, i) => {
+    const prev = asc[i-1];
+    if(prev && prev.to && prev.to < r.from) out.push({from:prev.to, to:r.from, gap:true});
+    out.push(r);
+  });
+  return out.reverse();   /* в таблице — от новых к старым */
+}
+
+function pageAvailability(){
+  const list = sorted().reverse();
+  const body = list.map(r => `
+    <tr class="${r.id===fresh?'fresh':''}">
+      ${dcCell(r.from, r.to)}
+      <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${r.st==='ok'?'Available':'Unavailable'}</span>${r.to===null?`<span class="curtag">${IC.chk} Current</span>`:''}</span></td>
+      <td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' ? '—' : (esc(r.reason)||'—')}</td>
+      <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${esc(r.comment) || '—'}</td>
+      <td${r.by==='System'?' class="muted"':''}>${esc(r.by)}</td>
+      <td class="act">${(r.system||r.to===null)?'':`<button class="kb" data-k="${r.id}">${IC.dots}</button>`}</td>
+    </tr>`).join('');
+
+  return `<h2>Availability</h2>
+  <div class="lead">Manage the unit’s availability over time.</div>
+  <div style="margin:22px 0 26px"><button class="btn btn-p" id="bRec">Record availability</button></div>
+  <table><thead><tr>
+    ${dcHead('Dates', 290)}
+    <th style="width:210px">Status</th><th style="width:170px">Reason</th><th>Comment</th><th style="width:140px">User</th><th style="width:52px"></th>
+  </tr></thead><tbody>${body}</tbody></table>`;
+}
+function bindAvailability(){
+  document.getElementById('bRec').onclick = dlgRecord;
+  document.querySelectorAll('[data-k]').forEach(b => b.onclick = e => kebab(e, +b.dataset.k));
+}
+function kebab(e, id){
+  document.querySelectorAll('.menu').forEach(m => m.remove());
+  const btn = e.currentTarget, r = btn.getBoundingClientRect();
+  btn.classList.add('open');
+  const m = document.createElement('div'); m.className = 'menu';
+  m.style.top = (r.bottom + scrollY + 6) + 'px'; m.style.left = (r.right + scrollX - 172) + 'px';
+  m.innerHTML = `<button data-a="e">${IC.pen} Edit</button><button class="q" data-a="d">${IC.bin} Delete record</button>`;
+  document.body.appendChild(m);
+  m.querySelector('[data-a=e]').onclick = () => { m.remove(); dlgEdit(id); };
+  m.querySelector('[data-a=d]').onclick = () => { m.remove(); dlgDel(id); };
+  setTimeout(() => document.addEventListener('click', function h(){
+    m.remove(); btn.classList.remove('open'); document.removeEventListener('click', h); }), 0);
+}
+
+/* =========================== OTHER PAGES =========================== */
+function pagePartners(){
+  const d = [
+    {from:shift('2025-07-01T12:30'), to:null,               name:'Acme Corp', now:true,  charges:'2,000', ch:'Jul 2, 2025, 6:40 – Jul 28, 2025, 10:05'},
+    {from:shift('2024-05-01T09:00'), to:shift('2024-06-15T00:00'), name:'Acme Corp', now:false, charges:'200',   ch:'May 2, 2025, 7:45 – Jun 14, 2025, 23:10'},
+    {from:shift('2024-04-15T00:00'), to:shift('2024-04-30T23:30'), name:'L-Charge',  now:false, charges:'1,000', ch:'Apr 15, 2025, 0:30 – Apr 29, 2025, 22:17'},
+    {from:shift('2024-03-01T00:00'), to:shift('2024-03-31T10:00'), name:'L-Charge',  now:false, charges:'1,000', ch:'Mar 1, 2025, 19:23 – Mar 31, 2025, 20:38'},
+    {from:shift('2024-01-01T00:00'), to:shift('2024-01-31T23:59'), name:'L-Charge',  now:false, charges:'1,000', ch:'Jan 1, 2025, 2:17 – Jan 28, 2025, 9:47'},
+  ];
+  const body = withGaps(d).map(r => r.gap
+    ? `<tr class="gaprow">${dcCell(r.from, r.to)}
+        <td>Not assigned</td><td>—</td><td>—</td><td class="act"></td></tr>`
+    : `<tr>${dcCell(r.from, r.to)}
+        <td>${r.name}${r.now?`<span class="nowtag">${IC.chk} Assigned now</span>`:''}</td>
+        <td>${r.charges}</td><td>${r.ch}</td>
+        <td class="act"><button class="kb kbd">${IC.dots}</button></td></tr>`).join('');
+
+  return `<h2>Partner assignments</h2><div class="lead">Manage unit assignments to partners.</div>
+  <div style="margin:22px 0 26px"><button class="btn btn-p">Assign partner</button></div>
+  <table><thead><tr>
+    ${dcHead('Assigned from-to', 340)}
+    <th style="width:260px">Partner</th><th style="width:150px">Charges</th><th>Charged from-to</th><th style="width:52px"></th>
+  </tr></thead><tbody>${body}</tbody></table>`;
+}
+function pageSites(){
+  const d = [
+    {from:shift('2025-04-20T00:00'), to:null,               name:'Tower Mission 1', now:true,  partner:'Acme Corp', charges:'0'},
+    {from:shift('2024-07-01T00:00'), to:shift('2024-07-31T00:00'), name:'Tower Mission 1', now:false, partner:'Acme Corp', charges:'200'},
+    {from:shift('2024-05-01T09:00'), to:shift('2024-06-15T00:00'), name:'Huston Site',     now:false, partner:'Ride Alto', charges:'200'},
+  ];
+  const body = withGaps(d).map(r => r.gap
+    ? `<tr class="gaprow">${dcCell(r.from, r.to)}
+        <td>Not assigned</td><td>—</td><td>—</td><td class="act"></td></tr>`
+    : `<tr>${dcCell(r.from, r.to)}
+        <td>${r.name}${r.now?`<span class="nowtag">${IC.chk} Deployed now</span>`:''}</td>
+        <td>${r.partner}</td><td>${r.charges}</td>
+        <td class="act"><button class="kb kbd">${IC.dots}</button></td></tr>`).join('');
+
+  return `<h2>Site deployments</h2><div class="lead">Manage unit deployments to sites.</div>
+  <div style="margin:22px 0 26px"><button class="btn btn-p">Deploy unit</button></div>
+  <table><thead><tr>
+    ${dcHead('Deployed from-to', 340)}
+    <th style="width:300px">Site</th><th style="width:200px">Partner</th><th>Charges</th><th style="width:52px"></th>
+  </tr></thead><tbody>${body}</tbody></table>`;
+}
+
+/* --- SoC limit: read-only журнал изменений операционной настройки --- */
+function pageSoc(){
+  const d = [
+    ['Jun 2, 2026, 10:15 – Now', '80%', true, 'Nick Smith'],
+    ['Feb 3, 2026, 10:41 – Jun 2, 2026, 10:15', '90%', false, 'Nick Smith'],
+    ['Jan 25, 2026, 9:52 – Feb 3, 2026, 10:41', '80%', false, 'System'],
+  ];
+  return `<h2>SoC limit</h2><div class="lead">History of the state-of-charge limit. Changed in Operational settings.</div>
+  <table style="margin-top:24px"><thead><tr>
+    <th style="width:340px"><button class="sort">Changed from-to ${IC.sort}</button></th>
+    <th style="width:220px">SoC limit</th><th>User</th>
+  </tr></thead><tbody>
+  ${d.map(r => `<tr><td>${r[0]}</td>
+    <td>${r[1]}${r[2]?`<span class="nowtag">${IC.chk} Current</span>`:''}</td>
+    <td${r[3]==='System'?' class="muted"':''}>${r[3]}</td></tr>`).join('')}
+  </tbody></table>
+  <div class="foot"><b>Read-only.</b> Rows are appended automatically when the SoC limit is saved in
+  <b>Operational settings</b> — this is a record of what was set, not something you edit here.</div>`;
+}
+
+/* --- OCPP client: read-only, версии приходят от устройства --- */
+function pageOcpp(){
+  const d = [
+    ['Sep 3, 2026, 9:24 – Now', 'v2.0.1', true],
+    ['May 12, 2026, 14:05 – Sep 3, 2026, 9:24', 'v2.0.0', false],
+    ['Jan 25, 2026, 9:52 – May 12, 2026, 14:05', 'v1.9.4', false],
+  ];
+  return `<h2>OCPP client</h2><div class="lead">Firmware version history reported by the unit over OCPP.</div>
+  <table style="margin-top:24px"><thead><tr>
+    <th style="width:340px"><button class="sort">Active from-to ${IC.sort}</button></th>
+    <th style="width:220px">Version</th><th>Source</th>
+  </tr></thead><tbody>
+  ${d.map(r => `<tr><td>${r[0]}</td>
+    <td>${r[1]}${r[2]?`<span class="nowtag">${IC.chk} Current</span>`:''}</td>
+    <td class="muted">System</td></tr>`).join('')}
+  </tbody></table>
+  <div class="foot"><b>Read-only.</b> The unit reports its firmware version over OCPP; the backoffice can’t set or edit it.
+  PLC version history works the same way and would sit beside this page.</div>`;
+}
+function pageOperational(){
+  return `<h2>Operational settings</h2><div class="lead">Unit charging operational settings.</div>
+  <div class="hr"></div>
+  <div class="frow">
+    <div class="fl"><h3>Energy <span class="bo-only">Backoffice only</span></h3></div>
+    <div class="fr">
+      <div><label>Nominal power</label><input class="ctrl" placeholder="Enter nominal power, kW" value="250"></div>
+      <div><label>SOC limit</label><input class="ctrl" placeholder="Enter SOC limit, %" value="80"></div>
+      <div class="align-r"><button class="btn btn-p">Save changes</button></div>
+    </div>
+  </div>`;
+}
+function pageGeneral(){
+  const c = cur();
+  /* eff — состояние, которое показываем в полях: черновик, если он есть, иначе текущая запись */
+  const eff = gDraft || {st:c.st, reason:c.reason||'', comment:c.comment||'', from:NOW};
+  const draft = eff.st;
+  const changed = gDraft ? gChanged(c, gDraft) : false;
+  /* Comment и Set from видны всегда, но правятся только когда есть что записать.
+     Вернули прежний статус или причину — поля снова гаснут. */
+  const fieldDis = changed ? '' : ' disabled';
+  /* Set from: без изменений показывает, когда установили текущий статус;
+     при изменении — текущий момент. */
+  const fromAt = changed ? gDraft.from : c.from;
+  /* Сменили только причину, статус прежний — поясняем, что это отдельная запись */
+  const reasonOnly = changed && gDraft.st === c.st;
+  const reasonHint = reasonOnly && detailNote === 'hint'
+    ? `<div class="fhint">${IC.info} Changing the reason will be saved as a new entry</div>`
+    : '';
+  const reasonAlert = reasonOnly && detailNote === 'alert'
+    ? `<div class="adalert" role="status">${IC.warn}<span>Changing the reason will be saved as a new entry</span></div>`
+    : '';
+  /* блокируется только переключение статуса; смена reason/comment внутри статуса разрешена всегда */
+  const toggleBlocked = draft === 'ok' ? sc.session : !sc.fields;
+  let gate = '';
+  if(toggleBlocked && draft==='ok') gate = `<div class="gate">Charger 01 has an active session, est. 25 min left.
+    <u>Go to Live charging</u> to stop it, or wait for it to finish.</div>`;
+  if(toggleBlocked && draft==='no') gate = `<div class="gate">To make the unit available, fill in:
+    <ul><li><u>Partner</u></li><li><u>Location</u></li><li><u>Individual clients rate</u></li></ul></div>`;
+
+  return `<h2>General</h2><div class="lead">Manage unit general settings.</div>
+  <div class="hr"></div>
+
+  <div class="frow">
+    <div class="fl"><h3>Current partner <span class="bo-only">Backoffice only</span></h3>
+      <p>The assigned partner will see and manage the unit. All charges will be allocated to this partner.</p></div>
+    <div class="fr">
+      <div><label>Partner managing the unit</label>
+        <select class="ctrl"><option${sc.fields?'':' selected'}>Select partner</option><option${sc.fields?' selected':''}>Acme Corp</option></select></div>
+      <div><label>Assign from</label><div class="dtrow">
+        <div class="withic">${IC.cal}<input class="ctrl" type="date"></div>
+        <div class="withic">${IC.clk}<input class="ctrl" type="time"></div></div></div>
+      <div class="align-r"><button class="btn btn-p">Assign partner</button></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+
+  <div class="frow">
+    <div class="fl"><h3>Current site <span class="bo-only">Backoffice only</span></h3>
+      <p>Add unit to a site. With unit deployed to a site charges will be also allocated to this site.</p></div>
+    <div class="fr">
+      <div><label>Site</label><select class="ctrl"><option selected>Tower Mission 1</option><option>Huston Site</option></select></div>
+      <div><label>Deploy from</label><div class="dtrow">
+        <div class="withic">${IC.cal}<input class="ctrl" type="date"></div>
+        <div class="withic">${IC.clk}<input class="ctrl" type="time"></div></div></div>
+      <div class="align-r"><button class="btn btn-p">Deploy unit</button></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+
+  <div class="frow">
+    <div class="fl"><h3>Unit details</h3></div>
+    <div class="fr">
+      <div><label>Location</label>
+        <div class="withic">${IC.pin}<input class="ctrl" placeholder="Enter address" value="${sc.fields?'10 West Beaver Ridge St, CA 95376, United States':''}"></div></div>
+      <div class="mapbox">
+        <svg width="100%" height="100%" viewBox="0 0 560 290" preserveAspectRatio="xMidYMid slice">
+          <rect width="560" height="290" fill="#eae5dc"/>
+          <rect x="0" y="0" width="200" height="290" fill="#e6e9da"/>
+          <path d="M30 250 L60 240 L90 260 L60 285 Z" fill="#aad3e5"/>
+          <rect x="380" y="20" width="90" height="55" rx="12" fill="#aad3e5"/>
+          <g stroke="#fff" stroke-width="9" fill="none">
+            <path d="M-10 90 H570"/><path d="M-10 175 H570"/><path d="M140 -10 V300"/><path d="M330 -10 V300"/><path d="M470 -10 V300"/>
+          </g>
+          <g stroke="#fff" stroke-width="3.5" fill="none" opacity=".9">
+            <path d="M-10 45 H570"/><path d="M-10 130 H570"/><path d="M-10 220 H570"/><path d="M-10 265 H570"/>
+            <path d="M60 -10 V300"/><path d="M215 -10 V300"/><path d="M265 -10 V300"/><path d="M400 -10 V300"/><path d="M525 -10 V300"/>
+          </g>
+          <g stroke="#f6d4a8" stroke-width="7" fill="none"><path d="M-10 175 C120 175 190 120 330 90"/></g>
+          <g fill="#6b6b6b" font-family="Inter" font-size="11">
+            <text x="300" y="82" font-size="15" fill="#4a4a4a">Fresno</text>
+            <text x="48" y="140" fill="#7a7a7a">Pratton</text><text x="150" y="200" fill="#7a7a7a">West Park</text>
+            <text x="352" y="200" fill="#7a7a7a">Calwa</text><text x="430" y="150" fill="#7a7a7a">Goldleaf</text>
+            <text x="290" y="35" fill="#7a7a7a">Mayfair</text><text x="440" y="40" fill="#7a7a7a">Las Palmas</text>
+          </g>
+          <circle cx="330" cy="90" r="6" fill="#f55451" stroke="#fff" stroke-width="2"/>
+          <text x="8" y="282" font-family="Inter" font-size="12" fill="#8a8a8a" font-weight="600">Google</text>
+        </svg>
+        <div class="mapzoom"><button>+</button><button>−</button></div>
+      </div>
+      <div><label>Individual clients rate</label>
+        <select class="ctrl"><option${sc.fields?'':' selected'}>Select rate</option><option${sc.fields?' selected':''}>Companies rate ($0.50 kWh)</option></select></div>
+      <div><label>Default fleet (optional)</label><select class="ctrl"><option>Select default fleet</option></select></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+
+    <div class="frow">
+    <div class="fl"><h3>Availability</h3>
+      <p>Set unit available to allow charging. This setting does not power the unit
+        on or off physically.</p></div>
+    <div class="fr">
+      <div class="swrow">
+        <div style="font-weight:500">${availCtl === 'seg' ? 'Set availability' : 'Available for charging'}</div>
+        ${availCtl === 'seg' ? `
+          <div class="seg seg-inline" id="gSeg">
+            <button data-v="ok" class="${draft==='ok'?'on':''}" ${(draft!=='ok'&&!sc.fields)?'disabled':''}><span class="dot ok"></span> Available</button>
+            <button data-v="no" class="${draft==='no'?'on':''}" ${(draft!=='no'&&sc.session)?'disabled':''}><span class="dot no"></span> Unavailable</button>
+          </div>`
+        : `<button class="switch ${draft==='ok'?'on':''}" id="gSw" ${toggleBlocked?'disabled':''}><i></i></button>`}
+      </div>
+      ${gate}
+      <div class="adet">
+        <div class="adet-h"><h4>Availability details</h4><span class="bo-only">Backoffice only</span></div>
+        ${draft==='no' ? `
+          <div><label>Reason <span class="opt">(optional)</span></label>
+            <select class="ctrl" id="gReason"><option value="">Select reason</option>
+              ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
+            ${reasonHint}</div>` : ''}
+        <div><label>Comment <span class="opt">(optional)</span></label>
+          <textarea class="ctrl" id="gComment" placeholder="Add note"${fieldDis}>${esc(eff.comment)}</textarea></div>
+        <div><label>Set from</label><div class="dtrow">
+          <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
+          <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
+        </div></div>
+        ${reasonAlert}
+        <div id="gErr"></div>
+      </div>
+    </div>
+  </div>
+  ${changed ? `<div class="island">
+      <span class="island-msg"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg> You have unsaved changes</span>
+      <span class="island-acts"><button class="btn btn-g" id="gResetBtn">Reset</button><button class="btn btn-p" id="gSave">Save changes</button></span>
+    </div>` : ''}`;
+}
+
+/* =========================== RENDER =========================== */
+function render(){
+  tick();
+  renderNav();
+  document.getElementById('main').innerHTML = ({
+    general: pageGeneral, operational: pageOperational,
+    partners: pagePartners, sites: pageSites, availability: pageAvailability,
+    soc: pageSoc, ocpp: pageOcpp,
+  })[page]();
+  if(page === 'availability') bindAvailability();
+  if(page === 'general'){
+    const sw = document.getElementById('gSw');
+    if(sw) sw.onclick = gStartToggle;
+    document.querySelectorAll('#gSeg button').forEach(b => {
+      if(!b.disabled) b.onclick = () => gApply({st: b.dataset.v});
+    });
+    const gl = document.getElementById('gLink'); if(gl) gl.onclick = () => { page = 'availability'; render(); };
+    const rz = document.getElementById('gReason'); if(rz) rz.onchange = e => gApply({reason: e.target.value});
+    const cm = document.getElementById('gComment');
+    if(cm) cm.oninput = e => { const p = e.target.selectionStart; gApply({comment: e.target.value});
+      const t = document.getElementById('gComment'); if(t){ t.focus(); try{ t.setSelectionRange(p, p); }catch(_){} } };
+    const fd = document.getElementById('gFromD'), ft = document.getElementById('gFromT');
+    const syncGeneralTimeLimit = () => { if(fd && ft) ft.max = fd.value === dpart(NOW) ? tpart(NOW) : ''; };
+    const readFrom = () => { if(gDraft) gDraft.from = join(fd.value, ft.value); syncGeneralTimeLimit(); };
+    if(fd){ fd.onchange = readFrom; fd.oninput = readFrom; }
+    if(ft){ ft.onchange = readFrom; ft.oninput = readFrom; }
+    syncGeneralTimeLimit();
+    const sv = document.getElementById('gSave'); if(sv) sv.onclick = gSaveDraft;
+    const rb = document.getElementById('gResetBtn'); if(rb) rb.onclick = gResetDraft;
+  } else { gClear(); }
+  document.querySelectorAll('.kbd').forEach(b => b.onclick = e => {
+    document.querySelectorAll('.menu').forEach(m => m.remove());
+    const r = e.currentTarget.getBoundingClientRect();
+    const m = document.createElement('div'); m.className = 'menu';
+    m.style.top = (r.bottom + scrollY + 6) + 'px'; m.style.left = (r.right + scrollX - 172) + 'px';
+    m.innerHTML = `<button>${IC.pen} Edit</button><button class="q">${IC.bin} Delete record</button>`;
+    document.body.appendChild(m);
+    setTimeout(() => document.addEventListener('click', function h(){ m.remove(); document.removeEventListener('click', h); }), 0);
+  });
+  fresh = null;
+}
+
+/* =========================== MODALS =========================== */
+const bd = document.getElementById('bd'), md = document.getElementById('md');
+let modalOpener = null;
+const modalSiblings = () => [...document.body.children].filter(el => el !== bd && el.tagName !== 'SCRIPT');
+const close = () => {
+  bd.classList.remove('on');
+  modalSiblings().forEach(el => { el.inert = false; });
+  md.innerHTML = '';
+  md.classList.remove('record-md');
+  modalOpener?.focus();
+  modalOpener = null;
+};
+bd.onclick = e => { if(e.target === bd) close(); };
+addEventListener('keydown', e => {
+  if(!bd.classList.contains('on')) return;
+  if(e.key === 'Escape'){ e.preventDefault(); close(); }
+  if(e.key !== 'Tab') return;
+  const focusable = [...md.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')];
+  if(!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+});
+const open = h => {
+  modalOpener = document.activeElement;
+  md.classList.remove('record-md');
+  md.innerHTML = h;
+  md.setAttribute('role','dialog');
+  md.setAttribute('aria-modal','true');
+  md.setAttribute('aria-labelledby','dialogTitle');
+  modalSiblings().forEach(el => { el.inert = true; });
+  bd.classList.add('on');
+  requestAnimationFrame(() => (md.querySelector('[data-autofocus], button, input, select, textarea'))?.focus());
+};
+const dtf = (l,id,d,t,h) => `<div><label>${l}</label><div class="dtrow">
+  <div class="withic">${IC.cal}<input class="ctrl" type="date" id="${id}D" value="${d||''}"></div>
+  <div class="withic">${IC.clk}<input class="ctrl" type="time" id="${id}T" value="${t||''}"></div></div>
+  ${h?`<div class="hint">${h}</div>`:''}</div>`;
+
+/* ===== General: inline-редактирование статуса + остров сохранения ===== */
+let gDraft = null, gTouched = false, gMemo = {cm:{}, rs:{}};
+/* ключ состояния: комментарий привязан к паре «статус + причина» */
+const stateKey = r => r.st === 'no' ? `no|${r.reason||''}` : 'ok';
+function gClear(){ gDraft = null; gTouched = false; gMemo = {cm:{}, rs:{}}; }
+/* Записать можно только смену статуса или причины: два одинаковых статуса
+   подряд не допускаются, разный комментарий их не различает. */
+function gChanged(c, d){
+  return d.st !== c.st || (d.st === 'no' && (d.reason||'') !== (c.reason||''));
+}
+/* Любое изменение полей формирует черновик. Записываемым его делает только
+   смена статуса или причины (см. gChanged). */
+function gApply(patch){
+  const c = cur();
+  const base = gDraft || {st:c.st, reason:c.reason||'', comment:c.comment||'', from:NOW};
+  const next = {...base, ...patch};
+  const stChanged = 'st' in patch && patch.st !== base.st;
+  const rsChanged = 'reason' in patch && patch.reason !== base.reason;
+  if(stChanged || rsChanged){
+    /* Комментарий принадлежит паре «статус + причина», причина — статусу.
+       Уходя из состояния, запоминаем оба; возвращаясь — достаём обратно,
+       поэтому исходный комментарий не теряется при переключении «туда-обратно». */
+    gMemo.cm[stateKey(base)] = base.comment;
+    gMemo.rs[base.st] = base.reason;
+    if(stChanged && !('reason' in patch)) next.reason = next.st === 'no' ? (gMemo.rs.no ?? '') : '';
+    if(next.st === 'ok') next.reason = '';
+    next.comment = gMemo.cm[stateKey(next)] ?? '';
+  }
+  if(next.st === 'ok') next.reason = '';        // у available нет причины
+  next.comment = next.comment || '';
+  gTouched = true;
+  gDraft = next;
+  render();
+}
+function gStartToggle(){
+  const st = gDraft ? gDraft.st : cur().st;
+  gApply({ st: st === 'ok' ? 'no' : 'ok' });
+}
+function gResetDraft(){ gClear(); render(); }
+/* Общая запись изменения статуса: валидация + вставка. Используют и inline/card,
+   и модальный вариант. Возвращает текст ошибки либо null при успехе. */
+function commitStatus(d){
+  tick();
+  const c = cur();
+  const statusChanged = d.st !== c.st;
+  if(d.from > NOW) return 'The date can’t be in the future.';
+  if(d.from < c.from) return `Roll back no further than ${fmt(c.from)} — that’s when the current state started.`;
+  if(statusChanged && d.st === 'no' && sc.session) return 'Charger 01 has an active session. Stop it in Live charging first.';
+  if(statusChanged && d.st === 'ok' && !sc.fields) return 'Fill in Partner, Location and Individual clients rate first.';
+  const cm = (d.comment || '').trim();
+  const rs = d.st === 'no' ? d.reason : '';
+  const c2 = cur();
+  if(d.from > c2.from){ c2.to = d.from; recs.push({id:++seq, from:d.from, to:null, st:d.st, reason:rs, comment:cm, by:ME}); }
+  else { c2.st = d.st; c2.reason = rs; c2.comment = cm; c2.by = ME; }
+  recs = normalize(sorted()).list.map(r => ({...r, isNew:undefined}));
+  return null;
+}
+function gSaveDraft(){
+  const c = cur(), d = gDraft; if(!d) return;
+  if(!gChanged(c, d)){ gClear(); render(); return; }
+  const err = commitStatus(d);
+  if(err){ const box = document.getElementById('gErr'); if(box) box.innerHTML = `<div class="err">${err}</div>`; return; }
+  gClear();
+  render();
+}
+
+function dlgRecord(){
+  tick();
+  const c = cur();
+  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', from:NOW, to:'', current:false, showErrors:false};
+  open(`<header><h3 id="dialogTitle">Record availability</h3>
+    <button class="modal-close" id="xClose" type="button" aria-label="Close record availability dialog" data-autofocus>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button></header><div class="b">
+    <p class="record-intro">You’re about to create an availability record of unit UN-401.</p>
+    <div id="sStatusField"><label>Status</label><div class="seg" id="sSt" role="group" aria-label="Availability status">
+      <button type="button" data-v="ok" aria-pressed="false"><span class="dot ok"></span> Available</button>
+      <button type="button" data-v="no" aria-pressed="false"><span class="dot no"></span> Unavailable</button></div><div id="sStatusErr"></div></div>
+    <div class="record-details">
+      <div class="adet-h"><h4>Availability details</h4><span class="bo-only">Backoffice only</span></div>
+      <div id="rzn"></div>
+      <div id="dates"></div>
+    </div>
+  </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
+    <button class="btn btn-p" id="ok" type="button">Record availability</button></footer>`);
+  md.classList.add('record-md');
+  const $ = i => document.getElementById(i);
+
+  const nextRecord = () => sorted().find(r => r.from > s.from);
+  function simulateCurrent(comment = s.comment){
+    const kept = [], removed = [], trimmed = [];
+    sorted().forEach(r => {
+      if(r.from >= s.from){ removed.push(r); return; }
+      if(r.to === null || r.to > s.from){ kept.push({...r, to:s.from}); trimmed.push(r); return; }
+      kept.push({...r});
+    });
+    kept.push({id:'new', from:s.from, to:null, st:s.st, reason:s.st === 'no' ? s.reason : '', comment, by:ME, isNew:true});
+    return {...normalize(kept), removed, trimmed};
+  }
+  function formErrors(){
+    const errors = {};
+    const next = {st:s.st, reason:s.st === 'no' ? s.reason : ''};
+    if(same(next, c)){
+      if(s.st === 'no') errors.reason = 'Select a different reason to add an availability record.';
+      else errors.status = 'Choose a different status to add an availability record.';
+    }
+    if(!s.from) errors.from = 'Enter a start date and time.';
+    else if(s.from < UNIT_ADDED) errors.from = `The unit was added on ${fmt(UNIT_ADDED)}. Periods before that can’t be recorded.`;
+    else if(s.from > NOW) errors.from = 'The start cannot be in the future.';
+    if(s.st !== c.st && s.st === 'no' && sc.session)
+      errors.status = 'Charger 01 has an active session. Stop it in Live charging first.';
+    if(s.st !== c.st && s.st === 'ok' && !sc.fields)
+      errors.status = 'Fill in Partner, Location and Individual clients rate first.';
+    if(!s.current){
+      if(!s.to) errors.to = 'Enter an end date and time.';
+      else if(s.to > NOW) errors.to = 'The end cannot be in the future.';
+      else if(s.from && s.to <= s.from) errors.to = 'The end must be after the start.';
+      else if(s.to > c.from) errors.to = `The end must be no later than ${fmt(c.from)} — that’s where the current record starts.`;
+    }
+    return errors;
+  }
+  function paintForm(){
+    $('sSt').querySelectorAll('button').forEach(b => {
+      const on = b.dataset.v === s.st;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    $('rzn').innerHTML = (s.st === 'no'
+      ? `<div id="fReasonField"><label for="fR">Reason <span class="opt">(optional)</span></label><select class="ctrl" id="fR" aria-describedby="fReasonErr">
+          <option value="">Select reason</option>${REASONS.map(r=>`<option ${s.reason===r?'selected':''}>${r}</option>`).join('')}</select><div id="fReasonErr"></div></div>` : '')
+      + `<div><label for="fC">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="fC" placeholder="Add a note">${esc(s.comment)}</textarea></div>`;
+    if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
+    if($('fC')) $('fC').oninput = e => { s.comment = e.target.value; upd(); };
+    const next = nextRecord(), minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
+    const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
+    const toTimeMax = s.to && dpart(s.to) === maxDate ? tpart(NOW) : '';
+    $('dates').innerHTML = `<div id="fFromField"><label for="fFD">From</label><div class="dtrow">
+      <div class="withic">${IC.cal}<input class="ctrl" type="date" id="fFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="fFromErr"></div>
+      <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="fFromErr"></div></div><div id="fFromErr"></div></div>
+      <div id="fToField"><label for="fTD">To</label><div class="dtrow">
+        <div class="withic tofield">${IC.cal}<input class="ctrl" type="date" id="fTD" value="${s.to?dpart(s.to):''}" min="${minDate}" max="${maxDate}" aria-describedby="fToErr" ${s.current?'disabled':''}>
+          <button class="to-shortcut" type="button" id="fNext" aria-label="Use the start of the next availability record" title="Use the start of the next availability record" ${next && !s.current?'':'disabled'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+          </button></div>
+        <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fTT" value="${s.to?tpart(s.to):''}" max="${toTimeMax}" aria-describedby="fToErr" ${s.current?'disabled':''}></div></div><div id="fToErr"></div></div>
+      <label class="record-check"><input type="checkbox" id="fCurrent" ${s.current?'checked':''}> Set as current status</label>
+      <div id="fAffected"></div>`;
+    ['fFD','fFT','fTD','fTT'].forEach(i => { if($(i)){ $(i).onchange = readDates; $(i).oninput = readDates; } });
+    $('fCurrent').onchange = e => { s.current = e.target.checked; paintForm(); };
+    $('fNext').onclick = () => {
+      const nextItem = nextRecord();
+      if(!nextItem) return;
+      s.to = nextItem.from;
+      $('fTD').value = dpart(s.to);
+      $('fTT').value = tpart(s.to);
+      syncModalTimeLimits();
+      upd();
+    };
+    upd();
+  }
+  function readDates(){
+    s.from = join($('fFD').value, $('fFT').value);
+    s.to = join($('fTD')?.value, $('fTT')?.value);
+    syncModalTimeLimits();
+    $('fNext').disabled = !nextRecord() || s.current;
+    upd();
+  }
+  function syncModalTimeLimits(){
+    const maxDate = dpart(NOW);
+    $('fFT').max = $('fFD').value === maxDate ? tpart(NOW) : '';
+    if($('fTT')) $('fTT').max = $('fTD').value === maxDate ? tpart(NOW) : '';
+  }
+  function removedRecordCount(){
+    if(!s.from || s.from < UNIT_ADDED || s.from > NOW) return 0;
+    if(s.current){
+      const sim = simulateCurrent();
+      return new Set(sim.removed.map(r => r.id)).size;
+    }
+    if(!s.to || s.to <= s.from) return 0;
+    const sim = simulateInsert(s.from, s.to, s.st, s.st === 'no' ? s.reason : '', s.comment);
+    return new Set(sim.eaten.map(r => r.id)).size;
+  }
+  function showFieldError(fieldId, errorId, message){
+    const field = $(fieldId), error = $(errorId);
+    if(!field || !error) return;
+    field.classList.toggle('field-error', Boolean(message));
+    field.querySelectorAll('input, select').forEach(control => control.setAttribute('aria-invalid', String(Boolean(message))));
+    error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
+  }
+  function upd(){
+    const removedCount = removedRecordCount();
+    $('fAffected').innerHTML = removedCount ? removedAvailabilityAlert(removedCount) : '';
+    const errors = formErrors();
+    const visible = s.showErrors ? errors : {};
+    showFieldError('sStatusField', 'sStatusErr', visible.status);
+    showFieldError('fReasonField', 'fReasonErr', visible.reason);
+    showFieldError('fFromField', 'fFromErr', visible.from);
+    showFieldError('fToField', 'fToErr', visible.to);
+    return Object.keys(errors).length === 0;
+  }
+  $('sSt').querySelectorAll('button').forEach(b => b.onclick = () => { s.st = b.dataset.v; s.reason = ''; s.comment = ''; paintForm(); });
+  $('x').onclick = close;
+  $('xClose').onclick = close;
+  $('ok').onclick = () => {
+    s.showErrors = true;
+    if(!upd()){
+      const firstInvalid = md.querySelector('.field-error select, .field-error input, #sStatusField.field-error button.on');
+      firstInvalid?.focus();
+      return;
+    }
+    const cm = s.comment.trim();
+    const sim = s.current
+      ? simulateCurrent(cm)
+      : simulateInsert(s.from, s.to, s.st, s.st === 'no' ? s.reason : '', cm);
+    recs = sim.list.map(r => ({...r, id:typeof r.id === 'number' ? r.id : ++seq, isNew:undefined}));
+    fresh = recs.find(r => r.from === s.from)?.id || cur().id;
+    close(); render();
+  };
+  paintForm();
+}
+
+function dlgEdit(id){
+  const list = sorted(), i = list.findIndex(r => r.id === id);
+  const r = list[i], prev = list[i-1], next = list[i+1];
+  const s = {st:r.st, reason:r.reason||'', comment:r.comment||'', from:r.from, to:r.to};
+  open(`<header><h3>Edit record</h3></header><div class="b">
+    <div class="was">On a continuous timeline a record’s boundaries are shared with its neighbours.
+      Moving them <b>moves the neighbours too</b> — a gap can’t be created.</div>
+    <div><label>Status</label><div class="seg" id="sSt">
+      <button data-v="ok"><span class="dot ok"></span> Available</button>
+      <button data-v="no"><span class="dot no"></span> Unavailable</button></div></div>
+    <div id="rzn"></div>
+    ${dtf('From','fF',dpart(r.from),tpart(r.from), prev?`Between ${fmt(prev.from)} and the end below.`:'')}
+    ${dtf('To','fT',dpart(r.to),tpart(r.to), next?`Between the start above and ${fmt(next.to || NOW)}.`:'')}
+    <div id="pv"></div><div id="er"></div>
+  </div><footer><button class="btn btn-g" id="x">Cancel</button>
+    <button class="btn btn-p" id="ok">Save changes</button></footer>`);
+  const $ = i2 => document.getElementById(i2);
+  function paintForm(){
+    $('sSt').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === s.st));
+    $('rzn').innerHTML = (s.st === 'no'
+      ? `<div><label>Reason (optional)</label><select class="ctrl" id="fR"><option value="">Select reason</option>
+          ${REASONS.map(x=>`<option ${s.reason===x?'selected':''}>${x}</option>`).join('')}</select></div>` : '')
+      + `<div><label>Comment (optional)</label><textarea class="ctrl" id="fC" placeholder="Add a note (optional)">${esc(s.comment)}</textarea></div>`;
+    if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
+    if($('fC')) $('fC').oninput = e => { s.comment = e.target.value; upd(); };
+    upd();
+  }
+  const read = () => { s.from = join($('fFD').value,$('fFT').value); s.to = join($('fTD').value,$('fTT').value); upd(); };
+  ['fFD','fFT','fTD','fTT'].forEach(x => { $(x).onchange = read; $(x).oninput = read; });
+  function upd(){
+    $('pv').innerHTML = ''; $('er').innerHTML = '';
+    if(!s.from || !s.to) return;
+    const er = [];
+    if(s.to <= s.from) er.push('The end must be after the start.');
+    if(prev && s.from <= prev.from) er.push(`The start must be after ${fmt(prev.from)} — that’s where the previous record begins.`);
+    if(!prev && s.from !== UNIT_ADDED) er.push(`The first record must start when the unit was added: ${fmt(UNIT_ADDED)}.`);
+    if(next && s.to >= (next.to || NOW) && next.to !== null) er.push(`The end must be before ${fmt(next.to)} — that’s where the next record ends.`);
+    if(next && next.to === null && s.to >= NOW) er.push('This would swallow the current record. Use Record availability instead.');
+    if(er.length){ $('er').innerHTML = `<div class="err">${er[0]}</div>`; return; }
+    const after = list.map(x => ({...x}));
+    after[i] = {...after[i], st:s.st, reason:s.reason, comment:s.comment, from:s.from, to:s.to, isNew:true};
+    if(prev) after[i-1] = {...after[i-1], to:s.from};
+    if(next) after[i+1] = {...after[i+1], from:s.to};
+    const clean = after.filter(x => x.to === null || x.to > x.from);
+    const norm = normalize(clean);
+    const w0 = prev ? prev.from : r.from, w1 = next ? (next.to || NOW) : (r.to || NOW);
+    const gone = after.length - clean.length;
+    $('pv').innerHTML = `<div class="pv"><div class="cap">What happens</div>
+      <div class="pvrow"><div class="lab">Before</div>${bar(list, w0, w1)}</div>
+      <div class="pvrow"><div class="lab">After</div>${bar(norm.list, w0, w1)}</div>
+      <div class="ticks"><span>${shrt(w0)}</span><span>${shrt(w1)}</span></div>
+      ${gone ? `<div class="pvt w">A neighbouring record is squeezed to zero and disappears.</div>` : ''}
+      ${norm.merged.length ? `<div class="pvt w">Two identical records end up next to each other and merge into one.</div>` : ''}
+      ${(!gone && !norm.merged.length) ? `<div class="pvt">Neighbouring boundaries move to match. No gaps.</div>` : ''}</div>`;
+  }
+  $('sSt').querySelectorAll('button').forEach(b => b.onclick = () => { s.st = b.dataset.v; s.reason = ''; s.comment = ''; paintForm(); });
+  $('x').onclick = close;
+  $('ok').onclick = () => {
+    if(!$('pv').innerHTML) return;
+    const l = sorted(), j = l.findIndex(x => x.id === id);
+    l[j].st = s.st; l[j].reason = s.st === 'no' ? s.reason : ''; l[j].comment = s.comment.trim();
+    l[j].from = s.from; l[j].to = s.to; l[j].by = ME;
+    if(l[j-1]) l[j-1].to = s.from;
+    if(l[j+1]) l[j+1].from = s.to;
+    recs = normalize(l.filter(x => x.to === null || x.to > x.from)).list;
+    fresh = id; close(); render();
+  };
+  paintForm();
+}
+function dlgDel(id){
+  const list = sorted(), i = list.findIndex(r => r.id === id);
+  const r = list[i], prev = list[i-1], next = list[i+1];
+  const after = list.filter(x => x.id !== id).map(x => ({...x}));
+  let note;
+  if(prev){ after[i-1].to = r.to; note = `The gap is closed by <b>${label(prev)}</b> before it, which now runs to ${shrt(r.to)}.`; }
+  else { after[0].from = r.from; note = `The gap is closed by <b>${label(next)}</b> after it, which now starts at ${shrt(r.from)}.`; }
+  const norm = normalize(after);
+  const w0 = prev ? prev.from : r.from, w1 = next ? (next.to || NOW) : (r.to || NOW);
+  open(`<header><h3>Delete record?</h3></header><div class="b">
+    <div><b>${label(r)}</b> · ${fmt(r.from)} – ${fmt(r.to)}<br>
+      <span style="color:var(--text-2)">Set by ${esc(r.by)}</span></div>
+    <div class="pv"><div class="cap">What happens</div>
+      <div class="pvrow"><div class="lab">Before</div>${bar(list, w0, w1)}</div>
+      <div class="pvrow"><div class="lab">After</div>${bar(norm.list, w0, w1)}</div>
+      <div class="ticks"><span>${shrt(w0)}</span><span>${shrt(w1)}</span></div>
+      <div class="pvt w">A record can’t just vanish — the timeline has to stay continuous.<br>${note}
+      ${norm.merged.length ? '<br>Its neighbours then match and merge into one record.' : ''}</div></div>
+  </div><footer><button class="btn btn-g" id="x">Cancel</button>
+    <button class="btn btn-d" id="ok">Delete record</button></footer>`);
+  document.getElementById('x').onclick = close;
+  document.getElementById('ok').onclick = () => { recs = norm.list.map(x=>({...x, isNew:undefined})); close(); render(); };
+}
+
+document.getElementById('cSession').onchange = e => { sc.session = e.target.checked; render(); };
+document.getElementById('cFields').onchange  = e => { sc.fields  = e.target.checked; render(); };
+document.getElementById('cReset').onclick = () => { seed(); render(); };
+document.getElementById('cClock').onchange = e => {
+  liveClock = e.target.checked;
+  seed();                 /* данные пересобираем под новое «сейчас» */
+  gClear();
+  render();
+};
+/* переключение колонок дат в таблицах History */
+document.querySelectorAll('#dateVar button').forEach(a => a.onclick = () => {
+  dateCols = a.dataset.v;
+  document.querySelectorAll('#dateVar button').forEach(x => x.classList.toggle('on', x === a));
+  render();
+});
+/* переключение контрола статуса: тумблер или сегмент-контрол */
+document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
+  availCtl = a.dataset.v;
+  gClear();
+  document.querySelectorAll('#ctlVar button').forEach(x => x.classList.toggle('on', x === a));
+  page = 'general';
+  render();
+});
+/* переключение презентации подсказки в Availability details */
+document.querySelectorAll('#detailsVar button').forEach(a => a.onclick = () => {
+  detailNote = a.dataset.v;
+  document.querySelectorAll('#detailsVar button').forEach(x => x.classList.toggle('on', x === a));
+  page = 'general';
+  render();
+});
+render();
+
+// dev-панель: сворачивание в иконку
+(function(){
+  var w=document.getElementById('devwrap'), t=document.getElementById('devToggle'), c=document.getElementById('devClose');
+  if(t) t.onclick=function(){ w.classList.toggle('open'); };
+  if(c) c.onclick=function(){ w.classList.remove('open'); };
+})();
+</script>
+</body>
+</html>
