@@ -195,11 +195,8 @@
   .modal-close:hover{background:var(--g-50);color:var(--text)}
   .modal-close svg{width:23px;height:23px}
   .record-intro{font-size:16px;line-height:1.5;text-wrap:pretty}
-  .record-details{background:var(--g-50);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:20px}
-  .record-details .adet-h{margin-bottom:2px}
-  .record-details .adet-h h4{font-size:16px;color:var(--text)}
-  .record-details .bo-only{background:#fff;white-space:nowrap}
-  .record-details #rzn,.record-details #dates{display:flex;flex-direction:column;gap:16px}
+  .record-md .b{gap:24px}
+  .record-md #rzn,.record-md #dates{display:flex;flex-direction:column;gap:20px}
   .tofield{position:relative}
   .tofield .ctrl{padding-right:46px}
   .to-shortcut{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:6px;color:var(--text-2);display:grid;place-items:center;z-index:2}
@@ -328,7 +325,7 @@
   .vswitch a.on{background:var(--text);color:#fff}
   .vswitch a.on:hover{background:var(--text)}
   @media(max-width:1000px){.cols{grid-template-columns:1fr}.devwrap{display:none}.vswitch{display:none}.frow{grid-template-columns:1fr;gap:16px}}
-  @media(max-width:560px){.bd{padding:12px}.record-details{padding:16px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}.record-details .adet-h{align-items:flex-start;flex-direction:column;gap:8px}}
+  @media(max-width:560px){.bd{padding:12px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}}
 </style>
 </head>
 <body>
@@ -1058,11 +1055,8 @@ function dlgRecord(){
     <div id="sStatusField"><label>Status</label><div class="seg" id="sSt" role="group" aria-label="Availability status">
       <button type="button" data-v="ok" aria-pressed="false"><span class="dot ok"></span> Available</button>
       <button type="button" data-v="no" aria-pressed="false"><span class="dot no"></span> Unavailable</button></div><div id="sStatusErr"></div></div>
-    <div class="record-details">
-      <div class="adet-h"><h4>Availability details</h4><span class="bo-only">Backoffice only</span></div>
-      <div id="rzn"></div>
-      <div id="dates"></div>
-    </div>
+    <div id="rzn"></div>
+    <div id="dates"></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Record availability</button></footer>`);
   md.classList.add('record-md');
