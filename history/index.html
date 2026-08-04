@@ -197,6 +197,9 @@
   .record-intro{font-size:16px;line-height:1.5;text-wrap:pretty}
   .record-md .b{gap:24px}
   .record-md #rzn,.record-md #dates{display:flex;flex-direction:column;gap:20px}
+  .record-status-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
+  .record-status-label{font-size:14px;font-weight:500}
+  .record-status-row .seg{width:min(390px,100%)}
   .tofield{position:relative}
   .tofield .ctrl{padding-right:46px}
   .to-shortcut{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:6px;color:var(--text-2);display:grid;place-items:center;z-index:2}
@@ -330,7 +333,7 @@
   .vswitch a.on{background:var(--text);color:#fff}
   .vswitch a.on:hover{background:var(--text)}
   @media(max-width:1000px){.cols{grid-template-columns:1fr}.devwrap{display:none}.vswitch{display:none}.frow{grid-template-columns:1fr;gap:16px}}
-  @media(max-width:560px){.bd{padding:12px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}}
+  @media(max-width:560px){.bd{padding:12px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}.record-status-row{align-items:flex-start;flex-direction:column;gap:10px}.record-status-row .seg{width:100%}}
 </style>
 </head>
 <body>
@@ -574,9 +577,9 @@ const IC = {
   pin:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
 };
 
-function removedAvailabilityAlert(count = 1){
+function affectedAvailabilityAlert(count = 1){
   const plural = count > 1;
-  return `<div class="affect-alert" role="status">${IC.warn}<div><strong>${plural ? 'Several availability records will be removed' : 'An availability record will be removed'}</strong><span>Records that fall within the new effective period will be removed.</span></div></div>`;
+  return `<div class="affect-alert" role="status">${IC.warn}<div><strong>${plural ? 'Several availability records will be affected' : 'An availability record will be affected'}</strong><span>Records that fall into the effective period will be modified or deleted.</span></div></div>`;
 }
 
 /* =========================== NAV =========================== */
@@ -1055,15 +1058,15 @@ function gSaveDraft(){
 function dlgRecord(){
   tick();
   const c = cur();
-  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', from:NOW, to:'', current:false, showErrors:false};
+  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', notesOpen:false, from:NOW, to:'', current:false, showErrors:false};
   open(`<header><h3 id="dialogTitle">Record availability</h3>
     <button class="modal-close" id="xClose" type="button" aria-label="Close record availability dialog" data-autofocus>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button></header><div class="b">
     <p class="record-intro">You’re about to create an availability record of unit UN-401.</p>
-    <div id="sStatusField"><label>Status</label><div class="seg" id="sSt" role="group" aria-label="Availability status">
+    <div id="sStatusField"><div class="record-status-row"><span class="record-status-label">Status</span><div class="seg" id="sSt" role="group" aria-label="Availability status">
       <button type="button" data-v="ok" aria-pressed="false"><span class="dot ok"></span> Available</button>
-      <button type="button" data-v="no" aria-pressed="false"><span class="dot no"></span> Unavailable</button></div><div id="sStatusErr"></div></div>
+      <button type="button" data-v="no" aria-pressed="false"><span class="dot no"></span> Unavailable</button></div></div><div id="sStatusErr"></div></div>
     <div id="rzn"></div>
     <div id="dates"></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
@@ -1110,12 +1113,10 @@ function dlgRecord(){
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', String(on));
     });
-    $('rzn').innerHTML = (s.st === 'no'
-      ? `<div id="fReasonField"><label for="fR">Reason <span class="opt">(optional)</span></label><select class="ctrl" id="fR" aria-describedby="fReasonErr">
-          <option value="">Select reason</option>${REASONS.map(r=>`<option ${s.reason===r?'selected':''}>${r}</option>`).join('')}</select><div id="fReasonErr"></div></div>` : '')
-      + `<div><label for="fC">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="fC" placeholder="Add a note">${esc(s.comment)}</textarea></div>`;
+    $('rzn').innerHTML = s.st === 'no'
+      ? `<div id="fReasonField"><label for="fR">Reason unavailable <span class="opt">(optional)</span></label><select class="ctrl" id="fR" aria-describedby="fReasonErr">
+          <option value="">Select reason</option>${REASONS.map(r=>`<option ${s.reason===r?'selected':''}>${r}</option>`).join('')}</select><div id="fReasonErr"></div></div>` : '';
     if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
-    if($('fC')) $('fC').oninput = e => { s.comment = e.target.value; upd(); };
     const next = nextRecord(), minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
     const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
     const toTimeMax = s.to && dpart(s.to) === maxDate ? tpart(NOW) : '';
@@ -1129,9 +1130,13 @@ function dlgRecord(){
           </button></div>
         <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fTT" value="${s.to?tpart(s.to):''}" max="${toTimeMax}" aria-describedby="fToErr" ${s.current?'disabled':''}></div></div><div id="fToErr"></div></div>
       <label class="record-check"><input type="checkbox" id="fCurrent" ${s.current?'checked':''}> Set as current status</label>
+      ${s.notesOpen ? `<div><label for="fNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+        : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}
       <div id="fAffected"></div>`;
     ['fFD','fFT','fTD','fTT'].forEach(i => { if($(i)){ $(i).onchange = readDates; $(i).oninput = readDates; } });
     $('fCurrent').onchange = e => { s.current = e.target.checked; paintForm(); };
+    if($('fNotes')) $('fNotes').oninput = e => { s.comment = e.target.value; upd(); };
+    if($('fAddNotes')) $('fAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('fNotes')?.focus()); };
     $('fNext').onclick = () => {
       const nextItem = nextRecord();
       if(!nextItem) return;
@@ -1155,15 +1160,15 @@ function dlgRecord(){
     $('fFT').max = $('fFD').value === maxDate ? tpart(NOW) : '';
     if($('fTT')) $('fTT').max = $('fTD').value === maxDate ? tpart(NOW) : '';
   }
-  function removedRecordCount(){
+  function affectedRecordCount(){
     if(!s.from || s.from < UNIT_ADDED || s.from > NOW) return 0;
     if(s.current){
       const sim = simulateCurrent();
-      return new Set(sim.removed.map(r => r.id)).size;
+      return new Set([...sim.removed, ...sim.trimmed].filter(r => r.id !== c.id).map(r => r.id)).size;
     }
     if(!s.to || s.to <= s.from) return 0;
     const sim = simulateInsert(s.from, s.to, s.st, s.st === 'no' ? s.reason : '', s.comment);
-    return new Set(sim.eaten.map(r => r.id)).size;
+    return new Set([...sim.eaten, ...sim.cut].map(r => r.id)).size;
   }
   function showFieldError(fieldId, errorId, message){
     const field = $(fieldId), error = $(errorId);
@@ -1173,8 +1178,8 @@ function dlgRecord(){
     error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
   }
   function upd(){
-    const removedCount = removedRecordCount();
-    $('fAffected').innerHTML = removedCount ? removedAvailabilityAlert(removedCount) : '';
+    const affectedCount = affectedRecordCount();
+    $('fAffected').innerHTML = affectedCount ? affectedAvailabilityAlert(affectedCount) : '';
     const errors = formErrors();
     const visible = s.showErrors ? errors : {};
     showFieldError('sStatusField', 'sStatusErr', visible.status);
@@ -1183,7 +1188,7 @@ function dlgRecord(){
     showFieldError('fToField', 'fToErr', visible.to);
     return Object.keys(errors).length === 0;
   }
-  $('sSt').querySelectorAll('button').forEach(b => b.onclick = () => { s.st = b.dataset.v; s.reason = ''; s.comment = ''; paintForm(); });
+  $('sSt').querySelectorAll('button').forEach(b => b.onclick = () => { s.st = b.dataset.v; s.reason = ''; s.comment = ''; s.notesOpen = false; paintForm(); });
   $('x').onclick = close;
   $('xClose').onclick = close;
   $('ok').onclick = () => {
