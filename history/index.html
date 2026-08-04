@@ -667,8 +667,7 @@ function kebab(e, id){
   btn.classList.add('open');
   const m = document.createElement('div'); m.className = 'menu';
   m.style.top = (r.bottom + scrollY + 6) + 'px'; m.style.left = (r.right + scrollX - 172) + 'px';
-  const record = recs.find(r => r.id === id);
-  m.innerHTML = `<button data-a="e">${IC.pen} Edit</button>${record?.to === null ? '' : `<button class="q" data-a="d">${IC.bin} Delete record</button>`}`;
+  m.innerHTML = `<button data-a="e">${IC.pen} Edit</button><button class="q" data-a="d">${IC.bin} Delete record</button>`;
   document.body.appendChild(m);
   m.querySelector('[data-a=e]').onclick = () => { m.remove(); dlgEdit(id); };
   const del = m.querySelector('[data-a=d]'); if(del) del.onclick = () => { m.remove(); dlgDel(id); };
@@ -1273,8 +1272,7 @@ function dlgEdit(id){
       ${isCurrent ? '' : `<div id="eToField"><label for="eTD">To</label><div class="dtrow">
         <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eTD" value="${dpart(s.to)}" min="${minDate}" max="${maxDate}" aria-describedby="eToErr"></div>
         <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eTT" value="${tpart(s.to)}" max="${toTimeMax}" aria-describedby="eToErr"></div></div><div id="eToErr"></div></div>`}
-      ${s.comment && !s.notesOpen ? `<div class="saved-comment"><label>Comment</label><p>${esc(s.comment)}</p></div>` : ''}
-      ${s.notesOpen ? `<div><label for="eNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+      ${(s.comment || s.notesOpen) ? `<div><label for="eNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="eAddNotes" type="button">Add Notes</button>`}`;
     ['eFD','eFT','eTD','eTT'].forEach(key => { if($(key)){ $(key).onchange = readDates; $(key).oninput = readDates; } });
     if($('eNotes')) $('eNotes').oninput = e => { s.comment = e.target.value; };
