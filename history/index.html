@@ -272,6 +272,7 @@
   .add-comment::before{content:'+';display:inline-block;margin-right:8px;font-size:18px;font-weight:400;line-height:12px;vertical-align:-1px}
   .add-comment:hover{background:#fff;color:var(--text)}
   .add-comment:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+  .saved-comment p{white-space:pre-wrap;color:var(--text-2);line-height:1.5}
   /* поля деталей: белые пока активны, гаснут когда записывать нечего */
   .adet .ctrl:disabled{background:#ededed;border-color:#e2e2e2;color:var(--text-3);cursor:not-allowed}
   .adet .withic:has(.ctrl:disabled) svg{color:var(--g-400)}
@@ -882,13 +883,14 @@ function pageGeneral(){
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
             ${reasonHint}</div>` : ''}
-        ${changed ? (gCommentOpen ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
-          <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
-          : `<button class="add-comment" id="gAddComment" type="button">Add Comment</button>`) : ''}
         <div><label>Set from</label><div class="dtrow">
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
         </div></div>
+        ${!changed && eff.comment ? `<div class="saved-comment"><label>Comment</label><p>${esc(eff.comment)}</p></div>` : ''}
+        ${changed ? (gCommentOpen ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
+          <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
+          : `<button class="add-comment" id="gAddComment" type="button">Add Notes</button>`) : ''}
         ${reasonAlert}
         <div id="gErr"></div>
       </div>
