@@ -268,6 +268,10 @@
   .adet-h h4{font-size:14.5px;font-weight:600}
   .adet-h .bo-only{background:#fff}
   .opt{color:var(--text-3);font-weight:400}
+  .add-comment{align-self:flex-start;min-height:32px;padding:5px 7px;border-radius:6px;color:var(--text-2);font-weight:500}
+  .add-comment::before{content:'+';display:inline-block;margin-right:8px;font-size:18px;font-weight:400;line-height:12px;vertical-align:-1px}
+  .add-comment:hover{background:#fff;color:var(--text)}
+  .add-comment:focus-visible{outline:2px solid var(--text);outline-offset:2px}
   /* поля деталей: белые пока активны, гаснут когда записывать нечего */
   .adet .ctrl:disabled{background:#ededed;border-color:#e2e2e2;color:var(--text-3);cursor:not-allowed}
   .adet .withic:has(.ctrl:disabled) svg{color:var(--g-400)}
@@ -398,8 +402,8 @@
   <div class="devhead"><h4>Prototype controls</h4><button class="devclose" id="devClose" title="Свернуть">✕</button></div>
   <div class="devsub">Availability control</div>
   <div class="devnav" id="ctlVar">
-    <button type="button" data-v="toggle" class="on">A1 · Toggle</button>
-    <button type="button" data-v="seg">A2 · Segment control</button>
+    <button type="button" data-v="toggle">A1 · Toggle</button>
+    <button type="button" data-v="seg" class="on">A2 · Segment control</button>
   </div>
   <div class="devsub">Availability details</div>
   <div class="devnav" id="detailsVar">
@@ -485,7 +489,7 @@ seed();
 const sc = {session:false, fields:true};
 let page = 'availability';
 /* контрол статуса в блоке Availability: 'toggle' (тумблер) | 'seg' (сегмент-контрол) */
-let availCtl = 'toggle';
+let availCtl = 'seg';
 /* подсказка при смене причины без смены статуса: 'hint' (строка под reason) | 'alert' (блок внизу) */
 let detailNote = 'hint';
 /* колонки дат в таблицах History: 'single' (from-to) | 'split' (Starts from / Ends) */
@@ -768,8 +772,7 @@ function pageGeneral(){
   const eff = gDraft || {st:c.st, reason:c.reason||'', comment:c.comment||'', from:NOW};
   const draft = eff.st;
   const changed = gDraft ? gChanged(c, gDraft) : false;
-  /* Comment и Set from видны всегда, но правятся только когда есть что записать.
-     Вернули прежний статус или причину — поля снова гаснут. */
+  /* Set from доступен, только когда есть новое изменение для сохранения. */
   const fieldDis = changed ? '' : ' disabled';
   /* Set from: без изменений показывает, когда установили текущий статус;
      при изменении — текущий момент. */
@@ -863,7 +866,7 @@ function pageGeneral(){
         on or off physically.</p></div>
     <div class="fr">
       <div class="swrow">
-        <div style="font-weight:500">${availCtl === 'seg' ? 'Set availability' : 'Available for charging'}</div>
+        <div style="font-weight:500">${availCtl === 'seg' ? 'Current status' : 'Available for charging'}</div>
         ${availCtl === 'seg' ? `
           <div class="seg seg-inline" id="gSeg">
             <button data-v="ok" class="${draft==='ok'?'on':''}" ${(draft!=='ok'&&!sc.fields)?'disabled':''}><span class="dot ok"></span> Available</button>
@@ -873,14 +876,15 @@ function pageGeneral(){
       </div>
       ${gate}
       <div class="adet">
-        <div class="adet-h"><h4>Availability details</h4><span class="bo-only">Backoffice only</span></div>
+        <div class="adet-h"><h4>Details</h4><span class="bo-only">Backoffice only</span></div>
         ${draft==='no' ? `
-          <div><label>Reason <span class="opt">(optional)</span></label>
+          <div><label>Reason unavailable <span class="opt">(optional)</span></label>
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
             ${reasonHint}</div>` : ''}
-        <div><label>Comment <span class="opt">(optional)</span></label>
-          <textarea class="ctrl" id="gComment" placeholder="Add note"${fieldDis}>${esc(eff.comment)}</textarea></div>
+        ${changed ? (gCommentOpen ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
+          <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
+          : `<button class="add-comment" id="gAddComment" type="button">Add Comment</button>`) : ''}
         <div><label>Set from</label><div class="dtrow">
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
@@ -917,6 +921,8 @@ function render(){
     const cm = document.getElementById('gComment');
     if(cm) cm.oninput = e => { const p = e.target.selectionStart; gApply({comment: e.target.value});
       const t = document.getElementById('gComment'); if(t){ t.focus(); try{ t.setSelectionRange(p, p); }catch(_){} } };
+    const ac = document.getElementById('gAddComment');
+    if(ac) ac.onclick = () => { gCommentOpen = true; render(); requestAnimationFrame(() => document.getElementById('gComment')?.focus()); };
     const fd = document.getElementById('gFromD'), ft = document.getElementById('gFromT');
     const syncGeneralTimeLimit = () => { if(fd && ft) ft.max = fd.value === dpart(NOW) ? tpart(NOW) : ''; };
     const readFrom = () => { if(gDraft) gDraft.from = join(fd.value, ft.value); syncGeneralTimeLimit(); };
@@ -978,10 +984,10 @@ const dtf = (l,id,d,t,h) => `<div><label>${l}</label><div class="dtrow">
   ${h?`<div class="hint">${h}</div>`:''}</div>`;
 
 /* ===== General: inline-редактирование статуса + остров сохранения ===== */
-let gDraft = null, gTouched = false, gMemo = {cm:{}, rs:{}};
+let gDraft = null, gTouched = false, gCommentOpen = false, gMemo = {cm:{}, rs:{}};
 /* ключ состояния: комментарий привязан к паре «статус + причина» */
 const stateKey = r => r.st === 'no' ? `no|${r.reason||''}` : 'ok';
-function gClear(){ gDraft = null; gTouched = false; gMemo = {cm:{}, rs:{}}; }
+function gClear(){ gDraft = null; gTouched = false; gCommentOpen = false; gMemo = {cm:{}, rs:{}}; }
 /* Записать можно только смену статуса или причины: два одинаковых статуса
    подряд не допускаются, разный комментарий их не различает. */
 function gChanged(c, d){
@@ -996,6 +1002,7 @@ function gApply(patch){
   const stChanged = 'st' in patch && patch.st !== base.st;
   const rsChanged = 'reason' in patch && patch.reason !== base.reason;
   if(stChanged || rsChanged){
+    gCommentOpen = false;
     /* Комментарий принадлежит паре «статус + причина», причина — статусу.
        Уходя из состояния, запоминаем оба; возвращаясь — достаём обратно,
        поэтому исходный комментарий не теряется при переключении «туда-обратно». */
