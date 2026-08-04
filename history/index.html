@@ -1058,7 +1058,7 @@ function gSaveDraft(){
 function dlgRecord(){
   tick();
   const c = cur();
-  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', notesOpen:false, from:NOW, to:'', current:false, showErrors:false};
+  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', notesOpen:false, from:NOW, to:'', current:true, showErrors:false};
   open(`<header><h3 id="dialogTitle">Record availability</h3>
     <button class="modal-close" id="xClose" type="button" aria-label="Close record availability dialog" data-autofocus>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
