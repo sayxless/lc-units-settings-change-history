@@ -200,6 +200,8 @@
   .record-status-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
   .record-status-label{font-size:14px;font-weight:500}
   .record-status-row .seg{width:min(390px,100%)}
+  .edit-status .seg button:disabled{cursor:default}
+  .edit-status .seg button.on:disabled{opacity:1}
   .tofield{position:relative}
   .tofield .ctrl{padding-right:46px}
   .to-shortcut{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:6px;color:var(--text-2);display:grid;place-items:center;z-index:2}
@@ -644,7 +646,7 @@ function pageAvailability(){
       <td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' ? '—' : (esc(r.reason)||'—')}</td>
       <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${esc(r.comment) || '—'}</td>
       <td${r.by==='System'?' class="muted"':''}>${esc(r.by)}</td>
-      <td class="act">${(r.system||r.to===null)?'':`<button class="kb" data-k="${r.id}">${IC.dots}</button>`}</td>
+      <td class="act">${r.system?'':`<button class="kb" data-k="${r.id}">${IC.dots}</button>`}</td>
     </tr>`).join('');
 
   return `<h2>Availability</h2>
@@ -665,10 +667,11 @@ function kebab(e, id){
   btn.classList.add('open');
   const m = document.createElement('div'); m.className = 'menu';
   m.style.top = (r.bottom + scrollY + 6) + 'px'; m.style.left = (r.right + scrollX - 172) + 'px';
-  m.innerHTML = `<button data-a="e">${IC.pen} Edit</button><button class="q" data-a="d">${IC.bin} Delete record</button>`;
+  const record = recs.find(r => r.id === id);
+  m.innerHTML = `<button data-a="e">${IC.pen} Edit</button>${record?.to === null ? '' : `<button class="q" data-a="d">${IC.bin} Delete record</button>`}`;
   document.body.appendChild(m);
   m.querySelector('[data-a=e]').onclick = () => { m.remove(); dlgEdit(id); };
-  m.querySelector('[data-a=d]').onclick = () => { m.remove(); dlgDel(id); };
+  const del = m.querySelector('[data-a=d]'); if(del) del.onclick = () => { m.remove(); dlgDel(id); };
   setTimeout(() => document.addEventListener('click', function h(){
     m.remove(); btn.classList.remove('open'); document.removeEventListener('click', h); }), 0);
 }
@@ -1212,68 +1215,96 @@ function dlgRecord(){
 function dlgEdit(id){
   const list = sorted(), i = list.findIndex(r => r.id === id);
   const r = list[i], prev = list[i-1], next = list[i+1];
-  const s = {st:r.st, reason:r.reason||'', comment:r.comment||'', from:r.from, to:r.to};
-  open(`<header><h3>Edit record</h3></header><div class="b">
-    <div class="was">On a continuous timeline a record’s boundaries are shared with its neighbours.
-      Moving them <b>moves the neighbours too</b> — a gap can’t be created.</div>
-    <div><label>Status</label><div class="seg" id="sSt">
-      <button data-v="ok"><span class="dot ok"></span> Available</button>
-      <button data-v="no"><span class="dot no"></span> Unavailable</button></div></div>
+  const isCurrent = r.to === null;
+  const s = {st:r.st, reason:r.reason||'', comment:r.comment||'', notesOpen:false, from:r.from, to:r.to, showErrors:false};
+  open(`<header><h3 id="dialogTitle">Edit availability record</h3>
+    <button class="modal-close" id="xClose" type="button" aria-label="Close edit availability dialog" data-autofocus>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button></header><div class="b">
+    <p class="record-intro">You’re about to edit an availability record of unit UN-401.</p>
+    <div class="edit-status"><div class="record-status-row"><span class="record-status-label">Status</span><div class="seg" id="sSt" role="group" aria-label="Availability status">
+      <button type="button" data-v="ok" disabled aria-pressed="false"><span class="dot ok"></span> Available</button>
+      <button type="button" data-v="no" disabled aria-pressed="false"><span class="dot no"></span> Unavailable</button></div></div></div>
     <div id="rzn"></div>
-    ${dtf('From','fF',dpart(r.from),tpart(r.from), prev?`Between ${fmt(prev.from)} and the end below.`:'')}
-    ${dtf('To','fT',dpart(r.to),tpart(r.to), next?`Between the start above and ${fmt(next.to || NOW)}.`:'')}
-    <div id="pv"></div><div id="er"></div>
-  </div><footer><button class="btn btn-g" id="x">Cancel</button>
-    <button class="btn btn-p" id="ok">Save changes</button></footer>`);
+    <div id="dates"></div>
+  </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
+    <button class="btn btn-p" id="ok" type="button">Save changes</button></footer>`);
+  md.classList.add('record-md');
   const $ = i2 => document.getElementById(i2);
+  function syncTimeLimits(){
+    const maxDate = dpart(NOW);
+    $('eFT').max = $('eFD').value === maxDate ? tpart(NOW) : '';
+    if($('eTT')) $('eTT').max = $('eTD').value === maxDate ? tpart(NOW) : '';
+  }
+  function errors(){
+    const out = {};
+    if(!s.from) out.from = 'Enter a start date and time.';
+    else if(s.from < UNIT_ADDED) out.from = `The unit was added on ${fmt(UNIT_ADDED)}. Periods before that can’t be recorded.`;
+    else if(s.from > NOW) out.from = 'The start cannot be in the future.';
+    else if(prev && s.from <= prev.from) out.from = `The start must be after ${fmt(prev.from)}.`;
+    if(!isCurrent){
+      if(!s.to) out.to = 'Enter an end date and time.';
+      else if(s.to > NOW) out.to = 'The end cannot be in the future.';
+      else if(s.from && s.to <= s.from) out.to = 'The end must be after the start.';
+      else if(next && next.to !== null && s.to >= next.to) out.to = `The end must be before ${fmt(next.to)}.`;
+      else if(next && next.to === null && s.to >= NOW) out.to = 'The end must be before the current time.';
+    }
+    return out;
+  }
+  function showError(fieldId, errorId, message){
+    const field = $(fieldId), error = $(errorId); if(!field || !error) return;
+    field.classList.toggle('field-error', Boolean(message));
+    field.querySelectorAll('input').forEach(control => control.setAttribute('aria-invalid', String(Boolean(message))));
+    error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
+  }
   function paintForm(){
-    $('sSt').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === s.st));
-    $('rzn').innerHTML = (s.st === 'no'
-      ? `<div><label>Reason (optional)</label><select class="ctrl" id="fR"><option value="">Select reason</option>
-          ${REASONS.map(x=>`<option ${s.reason===x?'selected':''}>${x}</option>`).join('')}</select></div>` : '')
-      + `<div><label>Comment (optional)</label><textarea class="ctrl" id="fC" placeholder="Add a note (optional)">${esc(s.comment)}</textarea></div>`;
-    if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
-    if($('fC')) $('fC').oninput = e => { s.comment = e.target.value; upd(); };
+    $('sSt').querySelectorAll('button').forEach(b => {
+      const selected = b.dataset.v === s.st; b.classList.toggle('on', selected); b.setAttribute('aria-pressed', String(selected));
+    });
+    $('rzn').innerHTML = s.st === 'no' ? `<div><label for="eReason">Reason unavailable <span class="opt">(optional)</span></label>
+      <select class="ctrl" id="eReason"><option value="">Select reason</option>${REASONS.map(x=>`<option ${s.reason===x?'selected':''}>${x}</option>`).join('')}</select></div>` : '';
+    if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; };
+    const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
+    const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
+    const toTimeMax = s.to && dpart(s.to) === maxDate ? tpart(NOW) : '';
+    $('dates').innerHTML = `<div id="eFromField"><label for="eFD">From</label><div class="dtrow">
+      <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="eFromErr"></div>
+      <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="eFromErr"></div></div><div id="eFromErr"></div></div>
+      ${isCurrent ? '' : `<div id="eToField"><label for="eTD">To</label><div class="dtrow">
+        <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eTD" value="${dpart(s.to)}" min="${minDate}" max="${maxDate}" aria-describedby="eToErr"></div>
+        <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eTT" value="${tpart(s.to)}" max="${toTimeMax}" aria-describedby="eToErr"></div></div><div id="eToErr"></div></div>`}
+      ${s.comment && !s.notesOpen ? `<div class="saved-comment"><label>Comment</label><p>${esc(s.comment)}</p></div>` : ''}
+      ${s.notesOpen ? `<div><label for="eNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+        : `<button class="add-comment" id="eAddNotes" type="button">Add Notes</button>`}`;
+    ['eFD','eFT','eTD','eTT'].forEach(key => { if($(key)){ $(key).onchange = readDates; $(key).oninput = readDates; } });
+    if($('eNotes')) $('eNotes').oninput = e => { s.comment = e.target.value; };
+    if($('eAddNotes')) $('eAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('eNotes')?.focus()); };
+    syncTimeLimits();
     upd();
   }
-  const read = () => { s.from = join($('fFD').value,$('fFT').value); s.to = join($('fTD').value,$('fTT').value); upd(); };
-  ['fFD','fFT','fTD','fTT'].forEach(x => { $(x).onchange = read; $(x).oninput = read; });
-  function upd(){
-    $('pv').innerHTML = ''; $('er').innerHTML = '';
-    if(!s.from || !s.to) return;
-    const er = [];
-    if(s.to <= s.from) er.push('The end must be after the start.');
-    if(prev && s.from <= prev.from) er.push(`The start must be after ${fmt(prev.from)} — that’s where the previous record begins.`);
-    if(!prev && s.from !== UNIT_ADDED) er.push(`The first record must start when the unit was added: ${fmt(UNIT_ADDED)}.`);
-    if(next && s.to >= (next.to || NOW) && next.to !== null) er.push(`The end must be before ${fmt(next.to)} — that’s where the next record ends.`);
-    if(next && next.to === null && s.to >= NOW) er.push('This would swallow the current record. Use Record availability instead.');
-    if(er.length){ $('er').innerHTML = `<div class="err">${er[0]}</div>`; return; }
-    const after = list.map(x => ({...x}));
-    after[i] = {...after[i], st:s.st, reason:s.reason, comment:s.comment, from:s.from, to:s.to, isNew:true};
-    if(prev) after[i-1] = {...after[i-1], to:s.from};
-    if(next) after[i+1] = {...after[i+1], from:s.to};
-    const clean = after.filter(x => x.to === null || x.to > x.from);
-    const norm = normalize(clean);
-    const w0 = prev ? prev.from : r.from, w1 = next ? (next.to || NOW) : (r.to || NOW);
-    const gone = after.length - clean.length;
-    $('pv').innerHTML = `<div class="pv"><div class="cap">What happens</div>
-      <div class="pvrow"><div class="lab">Before</div>${bar(list, w0, w1)}</div>
-      <div class="pvrow"><div class="lab">After</div>${bar(norm.list, w0, w1)}</div>
-      <div class="ticks"><span>${shrt(w0)}</span><span>${shrt(w1)}</span></div>
-      ${gone ? `<div class="pvt w">A neighbouring record is squeezed to zero and disappears.</div>` : ''}
-      ${norm.merged.length ? `<div class="pvt w">Two identical records end up next to each other and merge into one.</div>` : ''}
-      ${(!gone && !norm.merged.length) ? `<div class="pvt">Neighbouring boundaries move to match. No gaps.</div>` : ''}</div>`;
+  function readDates(){
+    s.from = join($('eFD').value, $('eFT').value);
+    if(!isCurrent) s.to = join($('eTD').value, $('eTT').value);
+    syncTimeLimits(); upd();
   }
-  $('sSt').querySelectorAll('button').forEach(b => b.onclick = () => { s.st = b.dataset.v; s.reason = ''; s.comment = ''; paintForm(); });
-  $('x').onclick = close;
+  function upd(){
+    const allErrors = errors(), visible = s.showErrors ? allErrors : {};
+    showError('eFromField', 'eFromErr', visible.from);
+    showError('eToField', 'eToErr', visible.to);
+    return Object.keys(allErrors).length === 0;
+  }
+  $('x').onclick = close; $('xClose').onclick = close;
   $('ok').onclick = () => {
-    if(!$('pv').innerHTML) return;
-    const l = sorted(), j = l.findIndex(x => x.id === id);
-    l[j].st = s.st; l[j].reason = s.st === 'no' ? s.reason : ''; l[j].comment = s.comment.trim();
-    l[j].from = s.from; l[j].to = s.to; l[j].by = ME;
-    if(l[j-1]) l[j-1].to = s.from;
-    if(l[j+1]) l[j+1].from = s.to;
-    recs = normalize(l.filter(x => x.to === null || x.to > x.from)).list;
+    s.showErrors = true;
+    if(!upd()){
+      md.querySelector('.field-error input')?.focus();
+      return;
+    }
+    const updated = sorted(), j = updated.findIndex(x => x.id === id);
+    updated[j] = {...updated[j], reason:s.st === 'no' ? s.reason : '', comment:s.comment.trim(), from:s.from, to:isCurrent ? null : s.to, by:ME, isNew:true};
+    if(updated[j-1]) updated[j-1].to = s.from;
+    if(!isCurrent && updated[j+1]) updated[j+1].from = s.to;
+    recs = normalize(updated.filter(x => x.to === null || x.to > x.from)).list;
     fresh = id; close(); render();
   };
   paintForm();
