@@ -643,8 +643,8 @@ function pageAvailability(){
     <tr class="${r.id===fresh?'fresh':''}">
       ${dcCell(r.from, r.to)}
       <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${r.st==='ok'?'Available':'Unavailable'}</span>${r.to===null?`<span class="curtag">${IC.chk} Current</span>`:''}</span></td>
-      <td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' ? '—' : (esc(r.reason)||'—')}</td>
-      <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${esc(r.comment) || '—'}</td>
+      <td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' ? '' : esc(r.reason)}</td>
+      <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${esc(r.comment)}</td>
       <td${r.by==='System'?' class="muted"':''}>${esc(r.by)}</td>
       <td class="act">${r.system?'':`<button class="kb" data-k="${r.id}">${IC.dots}</button>`}</td>
     </tr>`).join('');
