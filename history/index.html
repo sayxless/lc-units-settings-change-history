@@ -535,6 +535,20 @@ const label = r => r.st === 'ok' ? 'Available' : (r.reason ? `Unavailable · ${r
 /* Записи различают статус и причина. Комментарий — не различитель:
    два одинаковых статуса подряд недопустимы, даже с разными комментариями. */
 const same = (a,b) => a.st === b.st && (a.reason||'') === (b.reason||'');
+function timelineNeighbors(from, excludeId = null){
+  const events = sorted().filter(r => r.id !== excludeId);
+  return {
+    previous:[...events].reverse().find(r => r.from < from),
+    next:events.find(r => r.from > from),
+  };
+}
+function duplicateStateError(candidate, previous, next){
+  const adjacent = [previous, next].find(record => record && same(candidate, record));
+  if(!adjacent) return {};
+  return candidate.st === 'no'
+    ? {reason:'Choose a reason different from the adjacent unavailable record.'}
+    : {status:'Choose a status different from the adjacent availability record.'};
+}
 
 
 function bar(list, w0, w1){
@@ -1052,16 +1066,15 @@ function dlgRecord(){
 
   function formErrors(){
     const errors = {};
-    const next = {st:s.st, reason:s.st === 'no' ? s.reason : ''};
-    const previous = sorted().filter(r => r.from < s.from).at(-1);
-    if(recs.some(r => r.from === s.from)) errors.from = 'An availability record already starts at this date and time.';
-    else if(previous && same(next, previous)){
-      if(s.st === 'no') errors.reason = 'Select a different reason to add an availability record.';
-      else errors.status = 'Choose a different status to add an availability record.';
-    }
     if(!s.from) errors.from = 'Enter a start date and time.';
     else if(s.from < UNIT_ADDED) errors.from = `The unit was added on ${fmt(UNIT_ADDED)}. Periods before that can’t be recorded.`;
     else if(s.from > NOW) errors.from = 'The start cannot be in the future.';
+    else if(recs.some(r => r.from === s.from)) errors.from = 'An availability record already starts at this date and time.';
+    else {
+      const candidate = {st:s.st, reason:s.st === 'no' ? s.reason : ''};
+      const {previous, next} = timelineNeighbors(s.from);
+      Object.assign(errors, duplicateStateError(candidate, previous, next));
+    }
     if(s.st !== c.st && s.st === 'no' && sc.session)
       errors.status = 'Charger 01 has an active session. Stop it in Live charging first.';
     if(s.st !== c.st && s.st === 'ok' && !sc.fields)
@@ -1103,7 +1116,7 @@ function dlgRecord(){
     const field = $(fieldId), error = $(errorId);
     if(!field || !error) return;
     field.classList.toggle('field-error', Boolean(message));
-    field.querySelectorAll('input, select').forEach(control => control.setAttribute('aria-invalid', String(Boolean(message))));
+    field.querySelectorAll('input, select, button').forEach(control => control.setAttribute('aria-invalid', String(Boolean(message))));
     error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
   }
   function upd(){
@@ -1135,7 +1148,7 @@ function dlgRecord(){
 
 function dlgEdit(id){
   const list = sorted(), i = list.findIndex(r => r.id === id);
-  const r = list[i];
+  const r = list[i], previousRecord = list[i-1], nextRecord = list[i+1];
   const s = {st:r.st, reason:r.reason||'', comment:r.comment||'', notesOpen:false, from:r.from, showErrors:false};
   open(`<header><h3 id="dialogTitle">Edit availability record</h3>
     <button class="modal-close" id="xClose" type="button" aria-label="Close edit availability dialog" data-autofocus>
@@ -1161,21 +1174,27 @@ function dlgEdit(id){
     else if(s.from < UNIT_ADDED) out.from = `The unit was added on ${fmt(UNIT_ADDED)}. Periods before that can’t be recorded.`;
     else if(s.from > NOW) out.from = 'The start cannot be in the future.';
     else if(list.some(item => item.id !== id && item.from === s.from)) out.from = 'Another availability record already starts at this date and time.';
+    else if(previousRecord && s.from <= previousRecord.from) out.from = `Choose a time after the previous record starts: ${fmt(previousRecord.from)}.`;
+    else if(nextRecord && s.from >= nextRecord.from) out.from = `Choose a time before the next record starts: ${fmt(nextRecord.from)}.`;
+    else {
+      const candidate = {st:s.st, reason:s.st === 'no' ? s.reason : ''};
+      Object.assign(out, duplicateStateError(candidate, previousRecord, nextRecord));
+    }
     return out;
   }
   function showError(fieldId, errorId, message){
     const field = $(fieldId), error = $(errorId); if(!field || !error) return;
     field.classList.toggle('field-error', Boolean(message));
-    field.querySelectorAll('input').forEach(control => control.setAttribute('aria-invalid', String(Boolean(message))));
+    field.querySelectorAll('input, select, button').forEach(control => control.setAttribute('aria-invalid', String(Boolean(message))));
     error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
   }
   function paintForm(){
     $('sSt').querySelectorAll('button').forEach(b => {
       const selected = b.dataset.v === s.st; b.classList.toggle('on', selected); b.setAttribute('aria-pressed', String(selected));
     });
-    $('rzn').innerHTML = s.st === 'no' ? `<div><label for="eReason">Reason unavailable <span class="opt">(optional)</span></label>
-      <select class="ctrl" id="eReason"><option value="">Select reason</option>${REASONS.map(x=>`<option ${s.reason===x?'selected':''}>${x}</option>`).join('')}</select></div>` : '';
-    if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; };
+    $('rzn').innerHTML = s.st === 'no' ? `<div id="eReasonField"><label for="eReason">Reason unavailable <span class="opt">(optional)</span></label>
+      <select class="ctrl" id="eReason" aria-describedby="eReasonErr"><option value="">Select reason</option>${REASONS.map(x=>`<option ${s.reason===x?'selected':''}>${x}</option>`).join('')}</select><div id="eReasonErr"></div></div>` : '';
+    if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; upd(); };
     const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
     const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
     $('dates').innerHTML = `<div id="eFromField"><label for="eFD">From</label><div class="dtrow">
@@ -1196,6 +1215,7 @@ function dlgEdit(id){
   function upd(){
     const allErrors = errors(), visible = s.showErrors ? allErrors : {};
     showError('eFromField', 'eFromErr', visible.from);
+    showError('eReasonField', 'eReasonErr', visible.reason);
     return Object.keys(allErrors).length === 0;
   }
   $('x').onclick = close; $('xClose').onclick = close;
