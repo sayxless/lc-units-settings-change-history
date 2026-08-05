@@ -74,7 +74,7 @@
   .navgroup{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;
     text-align:left;padding:9px 13px;border-radius:var(--r);color:var(--text-2)}
   .navgroup:hover{background:#fafafa;color:var(--text)}
-  .navgroup.active{color:var(--text);font-weight:500}
+  .navgroup.active{background:var(--g-50);color:var(--text);font-weight:500}
   .navgroup .chev{transition:transform .15s;color:var(--text-3)}
   .navgroup.open .chev{transform:rotate(180deg)}
   .navkids{display:flex;flex-direction:column;gap:2px;margin:2px 0 2px 12px;padding-left:11px;
@@ -198,6 +198,7 @@
   .record-md .b{gap:16px}
   .record-fields{display:flex;flex-direction:column;gap:24px;padding:16px;border-radius:6px;background:var(--g-50)}
   .record-md #rzn,.record-md #dates{display:flex;flex-direction:column;gap:24px}
+  .record-md #rzn:empty{display:none}
   .record-status-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
   .record-status-label{font-size:14px;font-weight:500}
   .record-status-row .seg{width:229px}
@@ -242,7 +243,7 @@
   .statuscell{display:flex;align-items:center;gap:10px;white-space:nowrap}
   .curtag{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:500;white-space:nowrap}
   .seg{display:flex;background:var(--g-50);border-radius:6px;padding:0;gap:0}
-  .seg button{flex:1;min-height:32px;padding:6px 12px;border-radius:6px;color:var(--text-2);font-size:14px;line-height:20px;display:flex;align-items:center;justify-content:center;gap:4px}
+  .seg button{flex:1;min-height:32px;padding:6px 12px;border-radius:6px;color:var(--text-2);font-size:14px;line-height:20px;display:flex;align-items:center;justify-content:center;gap:8px}
   .seg button.on{background:#fff;border:1px solid var(--g-200);color:var(--text);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.08)}
   .pvrow{margin-bottom:10px}
   .pvrow .lab{font-size:11.5px;color:var(--text-3);margin-bottom:4px}
