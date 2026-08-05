@@ -633,7 +633,7 @@ function pageAvailability(){
   const body = list.map(r => `
     <tr class="${r.id===fresh?'fresh':''}">
       <td>${fmt(r.from)}</td>
-      <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${r.st==='ok'?'Available':'Unavailable'}</span>${r.to===null?`<span class="curtag">${IC.chk} Current</span>`:''}</span></td>
+      <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${r.st==='ok'?'Available':'Unavailable'}</span></span></td>
       <td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' ? '' : esc(r.reason)}</td>
       <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${esc(r.comment)}</td>
       <td${r.by==='System'?' class="muted"':''}>${esc(r.by)}</td>
