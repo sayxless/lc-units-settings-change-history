@@ -490,6 +490,7 @@ function seed(){
     {id:10, from:shift('2026-07-16T09:15'), to:shift('2026-07-16T11:00'), st:'ok', by:'Anna K.'},
     {id:11, from:shift('2026-07-16T11:00'), to:null,                      st:'no', reason:'Down', comment:'Connector 02 no output', by:'Nick Smith'},
   ];
+  recs = rebuildTimeline(recs);
 }
 seed();
 const sc = {session:false, fields:true};
@@ -524,6 +525,11 @@ const dpart = ts => ts.slice(0,10), tpart = ts => ts.slice(11,16);
 const join = (d,t) => (d&&t) ? `${d}T${t}` : '';
 
 const sorted = () => [...recs].sort((a,b)=>a.from<b.from?-1:1);
+/* Availability is an event timeline: a record ends exactly when the next one starts. */
+function rebuildTimeline(list){
+  const events = [...list].sort((a,b) => a.from < b.from ? -1 : a.from > b.from ? 1 : 0);
+  return events.map((r, index) => ({...r, to:events[index + 1]?.from || null}));
+}
 const cur = () => recs.find(r => r.to === null);
 const label = r => r.st === 'ok' ? 'Available' : (r.reason ? `Unavailable · ${r.reason}` : 'Unavailable');
 /* Записи различают статус и причина. Комментарий — не различитель:
@@ -531,33 +537,6 @@ const label = r => r.st === 'ok' ? 'Available' : (r.reason ? `Unavailable · ${r
 const same = (a,b) => a.st === b.st && (a.reason||'') === (b.reason||'');
 
 
-/* Вставка интервала: режет всё, что попало под него. Дыр не бывает
-   по построению — поэтому правило непрерывности из брифа здесь невыразимо. */
-function simulateInsert(from, to, st, reason, comment){
-  const closed = sorted().filter(r => r.to !== null);
-  const out = [], eaten = [], cut = [];
-  for(const r of closed){
-    if(r.to <= from || r.from >= to){ out.push({...r}); continue; }
-    if(r.from >= from && r.to <= to){ eaten.push(r); continue; }
-    if(r.from < from && r.to > to){ out.push({...r, to:from}); out.push({...r, id:'s'+r.id, from:to}); cut.push(r); continue; }
-    if(r.from < from){ out.push({...r, to:from}); cut.push(r); continue; }
-    out.push({...r, from:to}); cut.push(r);
-  }
-  out.push({id:'new', from, to, st, reason, comment:comment||'', by:ME, isNew:true});
-  out.sort((a,b)=>a.from<b.from?-1:1);
-  const c = cur();
-  return {list:[...out, {...c}], eaten, cut};
-}
-/* Смежные одинаковые — это не ошибка, а одна запись. Нормализуем. */
-function normalize(list){
-  const out = [], merged = [];
-  for(const r of list){
-    const last = out[out.length-1];
-    if(last && same(last, r)){ merged.push(r); last.to = r.to; last.isNew = last.isNew || r.isNew; }
-    else out.push({...r});
-  }
-  return {list:out, merged};
-}
 function bar(list, w0, w1){
   return `<div class="bar">${list.filter(r => (r.to||NOW) > w0 && r.from < w1).map(r => {
     const a = r.from < w0 ? w0 : r.from, b = (r.to||NOW) > w1 ? w1 : (r.to||NOW);
@@ -578,11 +557,6 @@ const IC = {
   warn:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2L22 20.5H2L12 3.2z" fill="#f7a916"/><path d="M12 8.2v6.2M12 17.7h.01" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/></svg>`,
   pin:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
 };
-
-function affectedAvailabilityAlert(count = 1){
-  const plural = count > 1;
-  return `<div class="affect-alert" role="status">${IC.warn}<div><strong>${plural ? 'Several availability records will be affected' : 'An availability record will be affected'}</strong><span>Records that fall into the effective period will be modified or deleted.</span></div></div>`;
-}
 
 /* =========================== NAV =========================== */
 /* Верхний уровень: General, Operational, History(группа).
@@ -641,7 +615,7 @@ function pageAvailability(){
   const list = sorted().reverse();
   const body = list.map(r => `
     <tr class="${r.id===fresh?'fresh':''}">
-      ${dcCell(r.from, r.to)}
+      <td>${fmt(r.from)}</td>
       <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${r.st==='ok'?'Available':'Unavailable'}</span>${r.to===null?`<span class="curtag">${IC.chk} Current</span>`:''}</span></td>
       <td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' ? '' : esc(r.reason)}</td>
       <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${esc(r.comment)}</td>
@@ -653,7 +627,7 @@ function pageAvailability(){
   <div class="lead">Manage the unit’s availability over time.</div>
   <div style="margin:22px 0 26px"><button class="btn btn-p" id="bRec">Record availability</button></div>
   <table><thead><tr>
-    ${dcHead('Dates', 290)}
+    <th style="width:290px"><button class="sort">Effective from ${IC.sort}</button></th>
     <th style="width:210px">Status</th><th style="width:170px">Reason</th><th>Comment</th><th style="width:140px">User</th><th style="width:52px"></th>
   </tr></thead><tbody>${body}</tbody></table>`;
 }
@@ -1043,9 +1017,9 @@ function commitStatus(d){
   const cm = (d.comment || '').trim();
   const rs = d.st === 'no' ? d.reason : '';
   const c2 = cur();
-  if(d.from > c2.from){ c2.to = d.from; recs.push({id:++seq, from:d.from, to:null, st:d.st, reason:rs, comment:cm, by:ME}); }
+  if(d.from > c2.from){ recs.push({id:++seq, from:d.from, st:d.st, reason:rs, comment:cm, by:ME}); }
   else { c2.st = d.st; c2.reason = rs; c2.comment = cm; c2.by = ME; }
-  recs = normalize(sorted()).list.map(r => ({...r, isNew:undefined}));
+  recs = rebuildTimeline(recs).map(r => ({...r, isNew:undefined}));
   return null;
 }
 function gSaveDraft(){
@@ -1060,7 +1034,7 @@ function gSaveDraft(){
 function dlgRecord(){
   tick();
   const c = cur();
-  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', notesOpen:false, from:NOW, to:'', current:true, showErrors:false};
+  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', notesOpen:false, from:NOW, showErrors:false};
   open(`<header><h3 id="dialogTitle">Record availability</h3>
     <button class="modal-close" id="xClose" type="button" aria-label="Close record availability dialog" data-autofocus>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1076,21 +1050,12 @@ function dlgRecord(){
   md.classList.add('record-md');
   const $ = i => document.getElementById(i);
 
-  const nextRecord = () => sorted().find(r => r.from > s.from);
-  function simulateCurrent(comment = s.comment){
-    const kept = [], removed = [], trimmed = [];
-    sorted().forEach(r => {
-      if(r.from >= s.from){ removed.push(r); return; }
-      if(r.to === null || r.to > s.from){ kept.push({...r, to:s.from}); trimmed.push(r); return; }
-      kept.push({...r});
-    });
-    kept.push({id:'new', from:s.from, to:null, st:s.st, reason:s.st === 'no' ? s.reason : '', comment, by:ME, isNew:true});
-    return {...normalize(kept), removed, trimmed};
-  }
   function formErrors(){
     const errors = {};
     const next = {st:s.st, reason:s.st === 'no' ? s.reason : ''};
-    if(same(next, c)){
+    const previous = sorted().filter(r => r.from < s.from).at(-1);
+    if(recs.some(r => r.from === s.from)) errors.from = 'An availability record already starts at this date and time.';
+    else if(previous && same(next, previous)){
       if(s.st === 'no') errors.reason = 'Select a different reason to add an availability record.';
       else errors.status = 'Choose a different status to add an availability record.';
     }
@@ -1101,12 +1066,6 @@ function dlgRecord(){
       errors.status = 'Charger 01 has an active session. Stop it in Live charging first.';
     if(s.st !== c.st && s.st === 'ok' && !sc.fields)
       errors.status = 'Fill in Partner, Location and Individual clients rate first.';
-    if(!s.current){
-      if(!s.to) errors.to = 'Enter an end date and time.';
-      else if(s.to > NOW) errors.to = 'The end cannot be in the future.';
-      else if(s.from && s.to <= s.from) errors.to = 'The end must be after the start.';
-      else if(s.to > c.from) errors.to = `The end must be no later than ${fmt(c.from)} — that’s where the current record starts.`;
-    }
     return errors;
   }
   function paintForm(){
@@ -1119,58 +1078,26 @@ function dlgRecord(){
       ? `<div id="fReasonField"><label for="fR">Reason unavailable <span class="opt">(optional)</span></label><select class="ctrl" id="fR" aria-describedby="fReasonErr">
           <option value="">Select reason</option>${REASONS.map(r=>`<option ${s.reason===r?'selected':''}>${r}</option>`).join('')}</select><div id="fReasonErr"></div></div>` : '';
     if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
-    const next = nextRecord(), minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
+    const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
     const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
-    const toTimeMax = s.to && dpart(s.to) === maxDate ? tpart(NOW) : '';
     $('dates').innerHTML = `<div id="fFromField"><label for="fFD">From</label><div class="dtrow">
       <div class="withic">${IC.cal}<input class="ctrl" type="date" id="fFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="fFromErr"></div>
       <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="fFromErr"></div></div><div id="fFromErr"></div></div>
-      <div id="fToField"><label for="fTD">To</label><div class="dtrow">
-        <div class="withic tofield">${IC.cal}<input class="ctrl" type="date" id="fTD" value="${s.to?dpart(s.to):''}" min="${minDate}" max="${maxDate}" aria-describedby="fToErr" ${s.current?'disabled':''}>
-          <button class="to-shortcut" type="button" id="fNext" aria-label="Use the start of the next availability record" title="Use the start of the next availability record" ${next && !s.current?'':'disabled'}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-          </button></div>
-        <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fTT" value="${s.to?tpart(s.to):''}" max="${toTimeMax}" aria-describedby="fToErr" ${s.current?'disabled':''}></div></div><div id="fToErr"></div></div>
-      <label class="record-check"><input type="checkbox" id="fCurrent" ${s.current?'checked':''}> Set as current status</label>
       ${s.notesOpen ? `<div><label for="fNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
-        : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}
-      <div id="fAffected"></div>`;
-    ['fFD','fFT','fTD','fTT'].forEach(i => { if($(i)){ $(i).onchange = readDates; $(i).oninput = readDates; } });
-    $('fCurrent').onchange = e => { s.current = e.target.checked; paintForm(); };
+        : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}`;
+    ['fFD','fFT'].forEach(i => { $(i).onchange = readDates; $(i).oninput = readDates; });
     if($('fNotes')) $('fNotes').oninput = e => { s.comment = e.target.value; upd(); };
     if($('fAddNotes')) $('fAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('fNotes')?.focus()); };
-    $('fNext').onclick = () => {
-      const nextItem = nextRecord();
-      if(!nextItem) return;
-      s.to = nextItem.from;
-      $('fTD').value = dpart(s.to);
-      $('fTT').value = tpart(s.to);
-      syncModalTimeLimits();
-      upd();
-    };
     upd();
   }
   function readDates(){
     s.from = join($('fFD').value, $('fFT').value);
-    s.to = join($('fTD')?.value, $('fTT')?.value);
     syncModalTimeLimits();
-    $('fNext').disabled = !nextRecord() || s.current;
     upd();
   }
   function syncModalTimeLimits(){
     const maxDate = dpart(NOW);
     $('fFT').max = $('fFD').value === maxDate ? tpart(NOW) : '';
-    if($('fTT')) $('fTT').max = $('fTD').value === maxDate ? tpart(NOW) : '';
-  }
-  function affectedRecordCount(){
-    if(!s.from || s.from < UNIT_ADDED || s.from > NOW) return 0;
-    if(s.current){
-      const sim = simulateCurrent();
-      return new Set([...sim.removed, ...sim.trimmed].filter(r => r.id !== c.id).map(r => r.id)).size;
-    }
-    if(!s.to || s.to <= s.from) return 0;
-    const sim = simulateInsert(s.from, s.to, s.st, s.st === 'no' ? s.reason : '', s.comment);
-    return new Set([...sim.eaten, ...sim.cut].map(r => r.id)).size;
   }
   function showFieldError(fieldId, errorId, message){
     const field = $(fieldId), error = $(errorId);
@@ -1180,14 +1107,11 @@ function dlgRecord(){
     error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
   }
   function upd(){
-    const affectedCount = affectedRecordCount();
-    $('fAffected').innerHTML = affectedCount ? affectedAvailabilityAlert(affectedCount) : '';
     const errors = formErrors();
     const visible = s.showErrors ? errors : {};
     showFieldError('sStatusField', 'sStatusErr', visible.status);
     showFieldError('fReasonField', 'fReasonErr', visible.reason);
     showFieldError('fFromField', 'fFromErr', visible.from);
-    showFieldError('fToField', 'fToErr', visible.to);
     return Object.keys(errors).length === 0;
   }
   $('sSt').querySelectorAll('button').forEach(b => b.onclick = () => { s.st = b.dataset.v; s.reason = ''; s.comment = ''; s.notesOpen = false; paintForm(); });
@@ -1201,11 +1125,9 @@ function dlgRecord(){
       return;
     }
     const cm = s.comment.trim();
-    const sim = s.current
-      ? simulateCurrent(cm)
-      : simulateInsert(s.from, s.to, s.st, s.st === 'no' ? s.reason : '', cm);
-    recs = sim.list.map(r => ({...r, id:typeof r.id === 'number' ? r.id : ++seq, isNew:undefined}));
-    fresh = recs.find(r => r.from === s.from)?.id || cur().id;
+    const id = ++seq;
+    recs = rebuildTimeline([...recs, {id, from:s.from, st:s.st, reason:s.st === 'no' ? s.reason : '', comment:cm, by:ME}]);
+    fresh = id;
     close(); render();
   };
   paintForm();
@@ -1213,9 +1135,8 @@ function dlgRecord(){
 
 function dlgEdit(id){
   const list = sorted(), i = list.findIndex(r => r.id === id);
-  const r = list[i], prev = list[i-1], next = list[i+1];
-  const isCurrent = r.to === null;
-  const s = {st:r.st, reason:r.reason||'', comment:r.comment||'', notesOpen:false, from:r.from, to:r.to, showErrors:false};
+  const r = list[i];
+  const s = {st:r.st, reason:r.reason||'', comment:r.comment||'', notesOpen:false, from:r.from, showErrors:false};
   open(`<header><h3 id="dialogTitle">Edit availability record</h3>
     <button class="modal-close" id="xClose" type="button" aria-label="Close edit availability dialog" data-autofocus>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1233,21 +1154,13 @@ function dlgEdit(id){
   function syncTimeLimits(){
     const maxDate = dpart(NOW);
     $('eFT').max = $('eFD').value === maxDate ? tpart(NOW) : '';
-    if($('eTT')) $('eTT').max = $('eTD').value === maxDate ? tpart(NOW) : '';
   }
   function errors(){
     const out = {};
     if(!s.from) out.from = 'Enter a start date and time.';
     else if(s.from < UNIT_ADDED) out.from = `The unit was added on ${fmt(UNIT_ADDED)}. Periods before that can’t be recorded.`;
     else if(s.from > NOW) out.from = 'The start cannot be in the future.';
-    else if(prev && s.from <= prev.from) out.from = `The start must be after ${fmt(prev.from)}.`;
-    if(!isCurrent){
-      if(!s.to) out.to = 'Enter an end date and time.';
-      else if(s.to > NOW) out.to = 'The end cannot be in the future.';
-      else if(s.from && s.to <= s.from) out.to = 'The end must be after the start.';
-      else if(next && next.to !== null && s.to >= next.to) out.to = `The end must be before ${fmt(next.to)}.`;
-      else if(next && next.to === null && s.to >= NOW) out.to = 'The end must be before the current time.';
-    }
+    else if(list.some(item => item.id !== id && item.from === s.from)) out.from = 'Another availability record already starts at this date and time.';
     return out;
   }
   function showError(fieldId, errorId, message){
@@ -1265,16 +1178,12 @@ function dlgEdit(id){
     if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; };
     const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
     const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
-    const toTimeMax = s.to && dpart(s.to) === maxDate ? tpart(NOW) : '';
     $('dates').innerHTML = `<div id="eFromField"><label for="eFD">From</label><div class="dtrow">
       <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="eFromErr"></div>
       <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="eFromErr"></div></div><div id="eFromErr"></div></div>
-      ${isCurrent ? '' : `<div id="eToField"><label for="eTD">To</label><div class="dtrow">
-        <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eTD" value="${dpart(s.to)}" min="${minDate}" max="${maxDate}" aria-describedby="eToErr"></div>
-        <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eTT" value="${tpart(s.to)}" max="${toTimeMax}" aria-describedby="eToErr"></div></div><div id="eToErr"></div></div>`}
       ${(s.comment || s.notesOpen) ? `<div><label for="eNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="eAddNotes" type="button">Add Notes</button>`}`;
-    ['eFD','eFT','eTD','eTT'].forEach(key => { if($(key)){ $(key).onchange = readDates; $(key).oninput = readDates; } });
+    ['eFD','eFT'].forEach(key => { $(key).onchange = readDates; $(key).oninput = readDates; });
     if($('eNotes')) $('eNotes').oninput = e => { s.comment = e.target.value; };
     if($('eAddNotes')) $('eAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('eNotes')?.focus()); };
     syncTimeLimits();
@@ -1282,13 +1191,11 @@ function dlgEdit(id){
   }
   function readDates(){
     s.from = join($('eFD').value, $('eFT').value);
-    if(!isCurrent) s.to = join($('eTD').value, $('eTT').value);
     syncTimeLimits(); upd();
   }
   function upd(){
     const allErrors = errors(), visible = s.showErrors ? allErrors : {};
     showError('eFromField', 'eFromErr', visible.from);
-    showError('eToField', 'eToErr', visible.to);
     return Object.keys(allErrors).length === 0;
   }
   $('x').onclick = close; $('xClose').onclick = close;
@@ -1299,10 +1206,8 @@ function dlgEdit(id){
       return;
     }
     const updated = sorted(), j = updated.findIndex(x => x.id === id);
-    updated[j] = {...updated[j], reason:s.st === 'no' ? s.reason : '', comment:s.comment.trim(), from:s.from, to:isCurrent ? null : s.to, by:ME, isNew:true};
-    if(updated[j-1]) updated[j-1].to = s.from;
-    if(!isCurrent && updated[j+1]) updated[j+1].from = s.to;
-    recs = normalize(updated.filter(x => x.to === null || x.to > x.from)).list;
+    updated[j] = {...updated[j], reason:s.st === 'no' ? s.reason : '', comment:s.comment.trim(), from:s.from, by:ME, isNew:true};
+    recs = rebuildTimeline(updated);
     fresh = id; close(); render();
   };
   paintForm();
@@ -1310,25 +1215,20 @@ function dlgEdit(id){
 function dlgDel(id){
   const list = sorted(), i = list.findIndex(r => r.id === id);
   const r = list[i], prev = list[i-1], next = list[i+1];
-  const after = list.filter(x => x.id !== id).map(x => ({...x}));
-  let note;
-  if(prev){ after[i-1].to = r.to; note = `The gap is closed by <b>${label(prev)}</b> before it, which now runs to ${shrt(r.to)}.`; }
-  else { after[0].from = r.from; note = `The gap is closed by <b>${label(next)}</b> after it, which now starts at ${shrt(r.from)}.`; }
-  const norm = normalize(after);
+  const after = rebuildTimeline(list.filter(x => x.id !== id));
   const w0 = prev ? prev.from : r.from, w1 = next ? (next.to || NOW) : (r.to || NOW);
   open(`<header><h3>Delete record?</h3></header><div class="b">
     <div><b>${label(r)}</b> · ${fmt(r.from)} – ${fmt(r.to)}<br>
       <span style="color:var(--text-2)">Set by ${esc(r.by)}</span></div>
     <div class="pv"><div class="cap">What happens</div>
       <div class="pvrow"><div class="lab">Before</div>${bar(list, w0, w1)}</div>
-      <div class="pvrow"><div class="lab">After</div>${bar(norm.list, w0, w1)}</div>
+      <div class="pvrow"><div class="lab">After</div>${bar(after, w0, w1)}</div>
       <div class="ticks"><span>${shrt(w0)}</span><span>${shrt(w1)}</span></div>
-      <div class="pvt w">A record can’t just vanish — the timeline has to stay continuous.<br>${note}
-      ${norm.merged.length ? '<br>Its neighbours then match and merge into one record.' : ''}</div></div>
+      <div class="pvt w">The remaining events keep their start dates. Each status remains in effect until the next recorded status change.</div></div>
   </div><footer><button class="btn btn-g" id="x">Cancel</button>
     <button class="btn btn-d" id="ok">Delete record</button></footer>`);
   document.getElementById('x').onclick = close;
-  document.getElementById('ok').onclick = () => { recs = norm.list.map(x=>({...x, isNew:undefined})); close(); render(); };
+  document.getElementById('ok').onclick = () => { recs = after.map(x=>({...x, isNew:undefined})); close(); render(); };
 }
 
 document.getElementById('cSession').onchange = e => { sc.session = e.target.checked; render(); };
