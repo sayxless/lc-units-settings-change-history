@@ -157,7 +157,7 @@
         box-shadow:0 8px 28px rgba(0,0,0,.12);padding:5px;min-width:172px;z-index:60}
   .menu button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:6px;color:var(--text)}
   .menu button:hover{background:var(--g-50)}
-  .menu button.q{color:var(--text-3)}
+  .menu button.q{color:var(--text)}
   .menu button.q:hover{color:var(--red);background:var(--danger-surface)}
   @keyframes fl{0%,50%{background:#fffbeb}100%{background:transparent}}
   tr.fresh td{animation:fl 1.8s ease}
@@ -195,7 +195,8 @@
   .modal-close:hover{background:var(--g-50);color:var(--text)}
   .modal-close svg{width:20px;height:20px}
   .record-intro{font-size:14px;line-height:20px;text-wrap:pretty}
-  .record-md .b{gap:24px}
+  .record-md .b{gap:16px}
+  .record-fields{display:flex;flex-direction:column;gap:24px;padding:16px;border-radius:6px;background:var(--g-50)}
   .record-md #rzn,.record-md #dates{display:flex;flex-direction:column;gap:24px}
   .record-status-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
   .record-status-label{font-size:14px;font-weight:500}
@@ -241,7 +242,7 @@
   .statuscell{display:flex;align-items:center;gap:10px;white-space:nowrap}
   .curtag{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:500;white-space:nowrap}
   .seg{display:flex;background:var(--g-50);border-radius:6px;padding:0;gap:0}
-  .seg button{flex:1;min-height:32px;padding:6px 12px;border-radius:6px;color:var(--text-2);font-size:14px;line-height:20px;display:flex;align-items:center;justify-content:center;gap:2px}
+  .seg button{flex:1;min-height:32px;padding:6px 12px;border-radius:6px;color:var(--text-2);font-size:14px;line-height:20px;display:flex;align-items:center;justify-content:center;gap:4px}
   .seg button.on{background:#fff;border:1px solid var(--g-200);color:var(--text);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.08)}
   .pvrow{margin-bottom:10px}
   .pvrow .lab{font-size:11.5px;color:var(--text-3);margin-bottom:4px}
@@ -277,7 +278,6 @@
   .add-comment::before{content:'+';display:inline-block;margin-right:8px;font-size:18px;font-weight:400;line-height:12px;vertical-align:-1px}
   .add-comment:hover{background:#fff;color:var(--text)}
   .add-comment:focus-visible{outline:2px solid var(--text);outline-offset:2px}
-  .saved-comment p{white-space:pre-wrap;color:var(--text-2);line-height:1.5}
   /* поля деталей: белые пока активны, гаснут когда записывать нечего */
   .adet .ctrl:disabled{background:#ededed;border-color:#e2e2e2;color:var(--text-3);cursor:not-allowed}
   .adet .withic:has(.ctrl:disabled) svg{color:var(--g-400)}
@@ -501,6 +501,7 @@ let availCtl = 'seg';
 let detailNote = 'hint';
 /* колонки дат в таблицах History: 'single' (from-to) | 'split' (Starts from / Ends) */
 let dateCols = 'single';
+let historyOpen = true;
 
 /* =========================== UTILS =========================== */
 const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -588,15 +589,16 @@ function renderNav(){
     `<button data-p="${k.k}" class="${page===k.k?'on':''}">${k.n}</button>`).join('');
   document.getElementById('subnav').innerHTML =
     TOP.map(p => `<button data-p="${p.k}" class="${page===p.k?'on':''}">${p.n}</button>`).join('') +
-    `<button class="navgroup ${inHistory?'active open':''}" id="navHistory">
+    `<button class="navgroup ${inHistory?'active':''} ${inHistory&&historyOpen?'open':''}" id="navHistory">
        <span>History</span>
        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
      </button>
-     ${inHistory ? `<div class="navkids">${kids}</div>` : ''}`;
-  document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { page = b.dataset.p; render(); });
-  // клик по заголовку History ведёт на первый вложенный пункт (если мы ещё не внутри)
+     ${inHistory&&historyOpen ? `<div class="navkids">${kids}</div>` : ''}`;
+  document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { page = b.dataset.p; historyOpen = true; render(); });
+  // Внутри History заголовок только сворачивает/разворачивает вложенные пункты.
   document.getElementById('navHistory').onclick = () => {
-    if(!HISTORY_KEYS.includes(page)) page = HISTORY_KIDS[0].k;
+    if(HISTORY_KEYS.includes(page)) historyOpen = !historyOpen;
+    else { page = HISTORY_KIDS[0].k; historyOpen = true; }
     render();
   };
 }
@@ -880,7 +882,7 @@ function pageGeneral(){
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
         </div></div>
-        ${!changed && eff.comment ? `<div class="saved-comment"><label>Comment</label><p>${esc(eff.comment)}</p></div>` : ''}
+        ${!changed && eff.comment ? `<div><label for="gSavedComment">Comment</label><textarea class="ctrl" id="gSavedComment" disabled>${esc(eff.comment)}</textarea></div>` : ''}
         ${changed ? (gCommentOpen ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
           <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
           : `<button class="add-comment" id="gAddComment" type="button">Add Notes</button>`) : ''}
@@ -1057,8 +1059,7 @@ function dlgRecord(){
     <div id="sStatusField"><div class="record-status-row"><span class="record-status-label">Status</span><div class="seg" id="sSt" role="group" aria-label="Availability status">
       <button type="button" data-v="ok" aria-pressed="false"><span class="dot ok"></span> Available</button>
       <button type="button" data-v="no" aria-pressed="false"><span class="dot no"></span> Unavailable</button></div></div><div id="sStatusErr"></div></div>
-    <div id="rzn"></div>
-    <div id="dates"></div>
+    <div class="record-fields"><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Record availability</button></footer>`);
   md.classList.add('record-md');
@@ -1158,8 +1159,7 @@ function dlgEdit(id){
     <div class="edit-status"><div class="record-status-row"><span class="record-status-label">Status</span><div class="seg" id="sSt" role="group" aria-label="Availability status">
       <button type="button" data-v="ok" disabled aria-pressed="false"><span class="dot ok"></span> Available</button>
       <button type="button" data-v="no" disabled aria-pressed="false"><span class="dot no"></span> Unavailable</button></div></div></div>
-    <div id="rzn"></div>
-    <div id="dates"></div>
+    <div class="record-fields"><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Save changes</button></footer>`);
   md.classList.add('record-md');
