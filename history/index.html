@@ -417,10 +417,10 @@
     <button type="button" data-v="hint" class="on">V1 · Inline note</button>
     <button type="button" data-v="alert">V2 · Alert block</button>
   </div>
-  <div class="devsub">History tables · dates</div>
-  <div class="devnav" id="dateVar">
-    <button type="button" data-v="single" class="on">One column · from-to</button>
-    <button type="button" data-v="split">Two columns · starts / ends</button>
+  <div class="devsub">Comments</div>
+  <div class="devnav" id="commentVar">
+    <button type="button" data-v="button" class="on">V1 · Add Notes</button>
+    <button type="button" data-v="always">V2 · Always visible</button>
   </div>
   <label><input type="checkbox" id="cSession"> Active charging session on Charger 01</label>
   <label><input type="checkbox" id="cFields" checked> Partner / Location / Rate filled</label>
@@ -500,8 +500,8 @@ let page = 'availability';
 let availCtl = 'seg';
 /* подсказка при смене причины без смены статуса: 'hint' (строка под reason) | 'alert' (блок внизу) */
 let detailNote = 'hint';
-/* колонки дат в таблицах History: 'single' (from-to) | 'split' (Starts from / Ends) */
-let dateCols = 'single';
+/* Комментарий добавляется по кнопке или всегда показывается как поле. */
+let commentMode = 'button';
 let historyOpen = true;
 
 /* =========================== UTILS =========================== */
@@ -607,13 +607,9 @@ function renderNav(){
 /* =========================== AVAILABILITY =========================== */
 /* ---- таблицы History: даты одной колонкой или двумя ---- */
 /* Заголовок периода: либо «X from-to», либо пара «Starts from» / «Ends» */
-const dcHead = (single, w) => dateCols === 'split'
-  ? `<th style="width:190px"><button class="sort">Starts from ${IC.sort}</button></th><th style="width:190px">Ends</th>`
-  : `<th style="width:${w}px"><button class="sort">${single} ${IC.sort}</button></th>`;
+const dcHead = (single, w) => `<th style="width:${w}px"><button class="sort">${single} ${IC.sort}</button></th>`;
 /* Ячейки периода. to === null — период продолжается, показываем «Now» */
-const dcCell = (from, to) => dateCols === 'split'
-  ? `<td>${fmt(from)}</td><td${to===null?' class="muted"':''}>${fmt(to)}</td>`
-  : `<td>${fmt(from)} – ${fmt(to)}</td>`;
+const dcCell = (from, to) => `<td>${fmt(from)} – ${fmt(to)}</td>`;
 
 /* Партнёры и сайты, в отличие от availability, НЕ непрерывны: между назначениями
    бывают промежутки, когда партнёр/сайт не заданы. Достраиваем их явными строками. */
@@ -883,10 +879,13 @@ function pageGeneral(){
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
         </div></div>
-        ${!changed && eff.comment ? `<div><label for="gSavedComment">Comment</label><textarea class="ctrl" id="gSavedComment" disabled>${esc(eff.comment)}</textarea></div>` : ''}
-        ${changed ? (gCommentOpen ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
-          <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
-          : `<button class="add-comment" id="gAddComment" type="button">Add Notes</button>`) : ''}
+        ${commentMode === 'always'
+          ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
+              <textarea class="ctrl" id="gComment" placeholder="Add note"${changed?'':' disabled'}>${esc(eff.comment)}</textarea></div>`
+          : `${!changed && eff.comment ? `<div><label for="gSavedComment">Comment</label><textarea class="ctrl" id="gSavedComment" disabled>${esc(eff.comment)}</textarea></div>` : ''}
+             ${changed ? (gCommentOpen ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
+               <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
+               : `<button class="add-comment" id="gAddComment" type="button">Add Notes</button>`) : ''}`}
         ${reasonAlert}
         <div id="gErr"></div>
       </div>
@@ -1098,7 +1097,7 @@ function dlgRecord(){
     $('dates').innerHTML = `<div id="fFromField"><label for="fFD">From</label><div class="dtrow">
       <div class="withic">${IC.cal}<input class="ctrl" type="date" id="fFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="fFromErr"></div>
       <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="fFromErr"></div></div><div id="fFromErr"></div></div>
-      ${s.notesOpen ? `<div><label for="fNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+      ${(commentMode === 'always' || s.notesOpen) ? `<div><label for="fNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}`;
     ['fFD','fFT'].forEach(i => { $(i).onchange = readDates; $(i).oninput = readDates; });
     if($('fNotes')) $('fNotes').oninput = e => { s.comment = e.target.value; upd(); };
@@ -1201,7 +1200,7 @@ function dlgEdit(id){
     $('dates').innerHTML = `<div id="eFromField"><label for="eFD">From</label><div class="dtrow">
       <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="eFromErr"></div>
       <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="eFromErr"></div></div><div id="eFromErr"></div></div>
-      ${(s.comment || s.notesOpen) ? `<div><label for="eNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+      ${(commentMode === 'always' || s.comment || s.notesOpen) ? `<div><label for="eNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="eAddNotes" type="button">Add Notes</button>`}`;
     ['eFD','eFT'].forEach(key => { $(key).onchange = readDates; $(key).oninput = readDates; });
     if($('eNotes')) $('eNotes').oninput = e => { s.comment = e.target.value; };
@@ -1261,12 +1260,6 @@ document.getElementById('cClock').onchange = e => {
   gClear();
   render();
 };
-/* переключение колонок дат в таблицах History */
-document.querySelectorAll('#dateVar button').forEach(a => a.onclick = () => {
-  dateCols = a.dataset.v;
-  document.querySelectorAll('#dateVar button').forEach(x => x.classList.toggle('on', x === a));
-  render();
-});
 /* переключение контрола статуса: тумблер или сегмент-контрол */
 document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
   availCtl = a.dataset.v;
@@ -1279,6 +1272,14 @@ document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
 document.querySelectorAll('#detailsVar button').forEach(a => a.onclick = () => {
   detailNote = a.dataset.v;
   document.querySelectorAll('#detailsVar button').forEach(x => x.classList.toggle('on', x === a));
+  page = 'general';
+  render();
+});
+/* переключение показа комментария: по кнопке или постоянно видимое поле */
+document.querySelectorAll('#commentVar button').forEach(a => a.onclick = () => {
+  commentMode = a.dataset.v;
+  gCommentOpen = false;
+  document.querySelectorAll('#commentVar button').forEach(x => x.classList.toggle('on', x === a));
   page = 'general';
   render();
 });
