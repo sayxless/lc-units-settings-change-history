@@ -271,7 +271,7 @@
   /* ---- блок Availability details ---- */
   .adet{display:flex;flex-direction:column;gap:16px;margin-top:16px;
     padding:18px 20px;border-radius:10px;background:var(--g-50)}
-  .adet-h{display:flex;justify-content:space-between;align-items:center;gap:16px}
+  .adet-h{display:flex;justify-content:flex-start;align-items:center;gap:16px}
   .adet-h h4{font-size:14.5px;font-weight:600}
   .adet-h .bo-only{background:#fff}
   .opt{color:var(--text-3);font-weight:400}
@@ -417,10 +417,10 @@
     <button type="button" data-v="hint" class="on">V1 · Inline note</button>
     <button type="button" data-v="alert">V2 · Alert block</button>
   </div>
-  <div class="devsub">Comments</div>
+  <div class="devsub">Notes</div>
   <div class="devnav" id="commentVar">
-    <button type="button" data-v="button" class="on">V1 · Add Notes</button>
-    <button type="button" data-v="always">V2 · Always visible</button>
+    <button type="button" data-v="button">V1 · Add Notes</button>
+    <button type="button" data-v="always" class="on">V2 · Always visible</button>
   </div>
   <label><input type="checkbox" id="cSession"> Active charging session on Charger 01</label>
   <label><input type="checkbox" id="cFields" checked> Partner / Location / Rate filled</label>
@@ -501,7 +501,7 @@ let availCtl = 'seg';
 /* подсказка при смене причины без смены статуса: 'hint' (строка под reason) | 'alert' (блок внизу) */
 let detailNote = 'hint';
 /* Комментарий добавляется по кнопке или всегда показывается как поле. */
-let commentMode = 'button';
+let commentMode = 'always';
 let historyOpen = true;
 
 /* =========================== UTILS =========================== */
@@ -640,8 +640,8 @@ function pageAvailability(){
   <div class="lead">Manage the unit’s availability over time.</div>
   <div style="margin:22px 0 26px"><button class="btn btn-p" id="bRec">Record availability</button></div>
   <table><thead><tr>
-    <th style="width:290px"><button class="sort">Effective from ${IC.sort}</button></th>
-    <th style="width:210px">Status</th><th style="width:170px">Reason</th><th>Comment</th><th style="width:140px">User</th><th style="width:52px"></th>
+    <th style="width:290px"><button class="sort">Start from ${IC.sort}</button></th>
+    <th style="width:210px">Status</th><th style="width:170px">Reason</th><th>Notes</th><th style="width:140px">User</th><th style="width:52px"></th>
   </tr></thead><tbody>${body}</tbody></table>`;
 }
 function bindAvailability(){
@@ -875,15 +875,15 @@ function pageGeneral(){
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
             ${reasonHint}</div>` : ''}
-        <div><label>Set from</label><div class="dtrow">
+        <div><label>Start from</label><div class="dtrow">
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
         </div></div>
         ${commentMode === 'always'
-          ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
+          ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
               <textarea class="ctrl" id="gComment" placeholder="Add note"${changed?'':' disabled'}>${esc(eff.comment)}</textarea></div>`
-          : `${!changed && eff.comment ? `<div><label for="gSavedComment">Comment</label><textarea class="ctrl" id="gSavedComment" disabled>${esc(eff.comment)}</textarea></div>` : ''}
-             ${changed ? (gCommentOpen ? `<div><label for="gComment">Comment <span class="opt">(optional)</span></label>
+          : `${!changed && eff.comment ? `<div><label for="gSavedComment">Notes</label><textarea class="ctrl" id="gSavedComment" disabled>${esc(eff.comment)}</textarea></div>` : ''}
+             ${changed ? (gCommentOpen ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
                <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
                : `<button class="add-comment" id="gAddComment" type="button">Add Notes</button>`) : ''}`}
         ${reasonAlert}
@@ -1094,10 +1094,10 @@ function dlgRecord(){
     if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
     const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
     const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
-    $('dates').innerHTML = `<div id="fFromField"><label for="fFD">From</label><div class="dtrow">
+    $('dates').innerHTML = `<div id="fFromField"><label for="fFD">Start from</label><div class="dtrow">
       <div class="withic">${IC.cal}<input class="ctrl" type="date" id="fFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="fFromErr"></div>
       <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="fFromErr"></div></div><div id="fFromErr"></div></div>
-      ${(commentMode === 'always' || s.notesOpen) ? `<div><label for="fNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+      ${(commentMode === 'always' || s.notesOpen) ? `<div><label for="fNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}`;
     ['fFD','fFT'].forEach(i => { $(i).onchange = readDates; $(i).oninput = readDates; });
     if($('fNotes')) $('fNotes').oninput = e => { s.comment = e.target.value; upd(); };
@@ -1197,10 +1197,10 @@ function dlgEdit(id){
     if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; upd(); };
     const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
     const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
-    $('dates').innerHTML = `<div id="eFromField"><label for="eFD">From</label><div class="dtrow">
+    $('dates').innerHTML = `<div id="eFromField"><label for="eFD">Start from</label><div class="dtrow">
       <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="eFromErr"></div>
       <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="eFromErr"></div></div><div id="eFromErr"></div></div>
-      ${(commentMode === 'always' || s.comment || s.notesOpen) ? `<div><label for="eNotes">Comment <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+      ${(commentMode === 'always' || s.comment || s.notesOpen) ? `<div><label for="eNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="eAddNotes" type="button">Add Notes</button>`}`;
     ['eFD','eFT'].forEach(key => { $(key).onchange = readDates; $(key).oninput = readDates; });
     if($('eNotes')) $('eNotes').oninput = e => { s.comment = e.target.value; };
