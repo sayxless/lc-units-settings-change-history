@@ -1462,14 +1462,11 @@ document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
   availCtl = a.dataset.v;
   gClear();
   document.querySelectorAll('#ctlVar button').forEach(x => x.classList.toggle('on', x === a));
-  page = 'general';
   render();
 });
 document.querySelectorAll('#tableVar button').forEach(button => button.onclick = () => {
   availTable = button.dataset.v;
   document.querySelectorAll('#tableVar button').forEach(item => item.classList.toggle('on', item === button));
-  page = 'availability';
-  historyOpen = true;
   render();
 });
 document.addEventListener('pointerdown', event => {
