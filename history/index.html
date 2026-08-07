@@ -202,7 +202,9 @@
   .record-md #rzn:empty{display:none}
   .record-status-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
   .record-status-label{font-size:14px;font-weight:500}
-  .record-status-row .seg{width:229px}
+  .record-status-row .seg,.record-status-row .status-dropdown{width:229px}
+  .record-status-row .switch{margin-block:4px}
+  .status-dropdown-trigger:disabled{background:var(--g-50);color:var(--text-3);cursor:not-allowed}
   .edit-status .seg button:disabled{cursor:default}
   .edit-status .seg button.on:disabled{opacity:1}
   .tofield{position:relative}
@@ -1018,9 +1020,10 @@ function render(){
 
 /* =========================== MODALS =========================== */
 const bd = document.getElementById('bd'), md = document.getElementById('md');
-let modalOpener = null;
+let modalOpener = null, modalStatusDropdown = null;
 const modalSiblings = () => [...document.body.children].filter(el => el !== bd && el.tagName !== 'SCRIPT');
 const close = () => {
+  modalStatusDropdown = null;
   bd.classList.remove('on');
   modalSiblings().forEach(el => { el.inert = false; });
   md.innerHTML = '';
@@ -1031,6 +1034,7 @@ const close = () => {
 bd.onclick = e => { if(e.target === bd) close(); };
 addEventListener('keydown', e => {
   if(!bd.classList.contains('on')) return;
+  if(e.defaultPrevented) return;
   if(e.key === 'Escape'){ e.preventDefault(); close(); }
   if(e.key !== 'Tab') return;
   const focusable = [...md.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')];
@@ -1131,14 +1135,13 @@ function dlgRecord(){
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button></header><div class="b">
     <p class="record-intro">You’re about to create an availability record of unit UN-401.</p>
-    <div id="sStatusField"><div class="record-status-row"><span class="record-status-label">Status</span><div class="seg" id="sSt" role="group" aria-label="Availability status">
-      <button type="button" data-v="ok" aria-pressed="false"><span class="dot ok"></span> Available</button>
-      <button type="button" data-v="no" aria-pressed="false"><span class="dot no"></span> Unavailable</button></div></div><div id="sStatusErr"></div></div>
+    <div id="sStatusField"><div class="record-status-row"><span class="record-status-label">Status</span><div id="fStatusControl"></div></div><div id="sStatusErr"></div></div>
     <div class="record-fields"><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Record availability</button></footer>`);
   md.classList.add('record-md');
   const $ = i => document.getElementById(i);
+  let statusOpen = false, statusFocus = 0;
 
   function formErrors(){
     const errors = {};
@@ -1157,13 +1160,72 @@ function dlgRecord(){
       errors.status = 'Fill in Partner, Location and Individual clients rate first.';
     return errors;
   }
-  function paintForm(){
-    $('sSt').querySelectorAll('button').forEach(b => {
-      const on = b.dataset.v === s.st;
-      b.classList.toggle('on', on);
-      b.setAttribute('aria-pressed', String(on));
+  const statusDisabled = target => target !== c.st && ((target === 'no' && sc.session) || (target === 'ok' && !sc.fields));
+  const nextStatusOption = (index, step) => {
+    for(let offset = 1; offset <= AVAILABILITY_OPTIONS.length; offset++){
+      const candidate = (index + step * offset + AVAILABILITY_OPTIONS.length) % AVAILABILITY_OPTIONS.length;
+      if(!availabilityOptionDisabled(AVAILABILITY_OPTIONS[candidate], c.st)) return candidate;
+    }
+    return index;
+  };
+  function statusControlMarkup(){
+    if(availCtl === 'toggle') return `<button class="switch ${s.st==='ok'?'on':''}" id="fStatusSwitch" type="button" aria-label="Availability status: ${s.st==='ok'?'available':'unavailable'}" aria-pressed="${s.st==='ok'}"${statusDisabled(s.st==='ok'?'no':'ok')?' disabled':''}><i></i></button>`;
+    if(availCtl === 'seg') return `<div class="seg" id="sSt" role="group" aria-label="Availability status">
+      ${['ok','no'].map(st => `<button type="button" data-v="${st}" class="${s.st===st?'on':''}" aria-pressed="${s.st===st}"${statusDisabled(st)?' disabled':''}><span class="dot ${st}"></span> ${st==='ok'?'Available':'Unavailable'}</button>`).join('')}</div>`;
+    const selected = AVAILABILITY_OPTIONS[availabilityOptionIndex(s)];
+    return `<div class="status-dropdown ${statusOpen?'open':''}" id="fStatusDropdown">
+      <button class="status-dropdown-trigger" id="fStatusTrigger" type="button" aria-haspopup="listbox" aria-expanded="${statusOpen}" aria-controls="fStatusList">
+        <span class="status-dropdown-value"><span class="dot ${selected.st}"></span>${selected.label}</span>
+        <svg class="status-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      ${statusOpen ? `<div class="status-dropdown-menu" id="fStatusList" role="listbox" aria-label="Availability status">
+        ${AVAILABILITY_OPTIONS.map((option, index) => {
+          const selected = index === availabilityOptionIndex(s), disabled = availabilityOptionDisabled(option, c.st);
+          return `<button class="status-dropdown-option" id="fStatusOption${index}" type="button" role="option" data-dd-index="${index}" aria-selected="${selected}" tabindex="${index===statusFocus?'0':'-1'}"${disabled?' disabled':''}><span class="dot ${option.st}"></span>${option.label}</button>${index===1?'<div class="status-dropdown-divider" role="separator"></div>':''}`;
+        }).join('')}
+      </div>` : ''}
+    </div>`;
+  }
+  function setStatus(next){
+    if(statusDisabled(next.st)) return;
+    s.st = next.st; s.reason = next.reason || ''; s.comment = ''; s.notesOpen = false; statusOpen = false; paintForm();
+  }
+  function bindStatusControl(){
+    const sw = $('fStatusSwitch'); if(sw) sw.onclick = () => setStatus({st:s.st === 'ok' ? 'no' : 'ok'});
+    $('sSt')?.querySelectorAll('button').forEach(button => button.onclick = () => setStatus({st:button.dataset.v}));
+    const trigger = $('fStatusTrigger');
+    if(!trigger){ modalStatusDropdown = null; return; }
+    const focusOption = index => requestAnimationFrame(() => $(`fStatusOption${index}`)?.focus());
+    const openDropdown = index => { statusOpen = true; statusFocus = index; paintForm(); focusOption(index); };
+    const closeDropdown = () => { statusOpen = false; paintForm(); requestAnimationFrame(() => $('fStatusTrigger')?.focus()); };
+    const choose = index => setStatus(AVAILABILITY_OPTIONS[index]);
+    trigger.onclick = () => statusOpen ? closeDropdown() : openDropdown(availabilityOptionIndex(s));
+    trigger.onkeydown = event => {
+      if(event.key === 'ArrowDown' || event.key === 'ArrowUp'){
+        event.preventDefault(); openDropdown(nextStatusOption(availabilityOptionIndex(s), event.key === 'ArrowDown' ? 1 : -1));
+      }
+      if(event.key === 'Escape' && statusOpen){ event.preventDefault(); closeDropdown(); }
+    };
+    document.querySelectorAll('.status-dropdown-option').forEach(button => {
+      const index = Number(button.dataset.ddIndex);
+      button.onclick = () => choose(index);
+      button.onkeydown = event => {
+        let target = null;
+        if(event.key === 'ArrowDown') target = nextStatusOption(index, 1);
+        if(event.key === 'ArrowUp') target = nextStatusOption(index, -1);
+        if(event.key === 'Home') target = nextStatusOption(-1, 1);
+        if(event.key === 'End') target = nextStatusOption(0, -1);
+        if(target !== null){ event.preventDefault(); statusFocus = target; paintForm(); focusOption(target); return; }
+        if(event.key === 'Escape'){ event.preventDefault(); closeDropdown(); return; }
+        if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); choose(index); }
+        if(event.key === 'Tab'){ statusOpen = false; requestAnimationFrame(paintForm); }
+      };
     });
-    $('rzn').innerHTML = s.st === 'no'
+    modalStatusDropdown = statusOpen ? {id:'fStatusDropdown', isOpen:() => statusOpen, close:closeDropdown} : null;
+  }
+  function paintForm(){
+    $('fStatusControl').innerHTML = statusControlMarkup();
+    $('rzn').innerHTML = s.st === 'no' && availCtl !== 'dropdown'
       ? `<div id="fReasonField"><label for="fR">Reason unavailable <span class="opt">(optional)</span></label><select class="ctrl" id="fR" aria-describedby="fReasonErr">
           <option value="">Select reason</option>${REASONS.map(r=>`<option ${s.reason===r?'selected':''}>${r}</option>`).join('')}</select><div id="fReasonErr"></div></div>` : '';
     if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
@@ -1177,6 +1239,7 @@ function dlgRecord(){
     ['fFD','fFT'].forEach(i => { $(i).onchange = readDates; $(i).oninput = readDates; });
     if($('fNotes')) $('fNotes').oninput = e => { s.comment = e.target.value; upd(); };
     if($('fAddNotes')) $('fAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('fNotes')?.focus()); };
+    bindStatusControl();
     upd();
   }
   function readDates(){
@@ -1198,12 +1261,11 @@ function dlgRecord(){
   function upd(){
     const errors = formErrors();
     const visible = s.showErrors ? errors : {};
-    showFieldError('sStatusField', 'sStatusErr', visible.status);
-    showFieldError('fReasonField', 'fReasonErr', visible.reason);
+    showFieldError('sStatusField', 'sStatusErr', visible.status || (availCtl === 'dropdown' ? visible.reason : ''));
+    showFieldError('fReasonField', 'fReasonErr', availCtl === 'dropdown' ? '' : visible.reason);
     showFieldError('fFromField', 'fFromErr', visible.from);
     return Object.keys(errors).length === 0;
   }
-  $('sSt').querySelectorAll('button').forEach(b => b.onclick = () => { s.st = b.dataset.v; s.reason = ''; s.comment = ''; s.notesOpen = false; paintForm(); });
   $('x').onclick = close;
   $('xClose').onclick = close;
   $('ok').onclick = () => {
@@ -1231,9 +1293,7 @@ function dlgEdit(id){
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button></header><div class="b">
     <p class="record-intro">You’re about to edit an availability record of unit UN-401.</p>
-    <div class="edit-status"><div class="record-status-row"><span class="record-status-label">Status</span><div class="seg" id="sSt" role="group" aria-label="Availability status">
-      <button type="button" data-v="ok" disabled aria-pressed="false"><span class="dot ok"></span> Available</button>
-      <button type="button" data-v="no" disabled aria-pressed="false"><span class="dot no"></span> Unavailable</button></div></div></div>
+    <div class="edit-status" id="eStatusField"><div class="record-status-row"><span class="record-status-label">Status</span><div id="eStatusControl"></div></div><div id="eStatusErr"></div></div>
     <div class="record-fields"><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Save changes</button></footer>`);
@@ -1263,11 +1323,19 @@ function dlgEdit(id){
     field.querySelectorAll('input, select, button').forEach(control => control.setAttribute('aria-invalid', String(Boolean(message))));
     error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
   }
+  function statusControlMarkup(){
+    if(availCtl === 'toggle') return `<button class="switch ${s.st==='ok'?'on':''}" type="button" aria-label="Availability status: ${s.st==='ok'?'available':'unavailable'}" aria-pressed="${s.st==='ok'}" disabled><i></i></button>`;
+    if(availCtl === 'seg') return `<div class="seg" role="group" aria-label="Availability status">
+      ${['ok','no'].map(st => `<button type="button" class="${s.st===st?'on':''}" disabled aria-pressed="${s.st===st}"><span class="dot ${st}"></span> ${st==='ok'?'Available':'Unavailable'}</button>`).join('')}</div>`;
+    const selected = AVAILABILITY_OPTIONS[availabilityOptionIndex(s)];
+    return `<div class="status-dropdown"><button class="status-dropdown-trigger" type="button" aria-label="Availability status: ${selected.label}" disabled>
+      <span class="status-dropdown-value"><span class="dot ${selected.st}"></span>${selected.label}</span>
+      <svg class="status-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button></div>`;
+  }
   function paintForm(){
-    $('sSt').querySelectorAll('button').forEach(b => {
-      const selected = b.dataset.v === s.st; b.classList.toggle('on', selected); b.setAttribute('aria-pressed', String(selected));
-    });
-    $('rzn').innerHTML = s.st === 'no' ? `<div id="eReasonField"><label for="eReason">Reason unavailable <span class="opt">(optional)</span></label>
+    $('eStatusControl').innerHTML = statusControlMarkup();
+    $('rzn').innerHTML = s.st === 'no' && availCtl !== 'dropdown' ? `<div id="eReasonField"><label for="eReason">Reason unavailable <span class="opt">(optional)</span></label>
       <select class="ctrl" id="eReason" aria-describedby="eReasonErr"><option value="">Select reason</option>${REASONS.map(x=>`<option ${s.reason===x?'selected':''}>${x}</option>`).join('')}</select><div id="eReasonErr"></div></div>` : '';
     if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; upd(); };
     const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
@@ -1290,7 +1358,8 @@ function dlgEdit(id){
   function upd(){
     const allErrors = errors(), visible = s.showErrors ? allErrors : {};
     showError('eFromField', 'eFromErr', visible.from);
-    showError('eReasonField', 'eReasonErr', visible.reason);
+    showError('eStatusField', 'eStatusErr', availCtl === 'dropdown' ? visible.reason : '');
+    showError('eReasonField', 'eReasonErr', availCtl === 'dropdown' ? '' : visible.reason);
     return Object.keys(allErrors).length === 0;
   }
   $('x').onclick = close; $('xClose').onclick = close;
@@ -1344,11 +1413,14 @@ document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
   render();
 });
 document.addEventListener('pointerdown', event => {
-  if(!gStatusOpen) return;
   const dropdown = document.getElementById('gStatusDropdown');
-  if(dropdown && !dropdown.contains(event.target)){
+  if(gStatusOpen && dropdown && !dropdown.contains(event.target)){
     gStatusOpen = false;
     render();
+  }
+  if(modalStatusDropdown?.isOpen()){
+    const modalDropdown = document.getElementById(modalStatusDropdown.id);
+    if(modalDropdown && !modalDropdown.contains(event.target)) modalStatusDropdown.close();
   }
 }, true);
 render();
