@@ -190,6 +190,18 @@
   .md .b{padding:12px 24px;display:flex;flex-direction:column;gap:16px}
   .md footer{padding:12px 24px 24px;display:flex;justify-content:flex-end;gap:8px}
   .md.record-md{width:min(480px,100%)}
+  .md.delete-md{width:min(640px,100%);border-radius:20px}
+  .delete-md header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:28px 32px 12px}
+  .delete-heading{display:flex;align-items:center;gap:14px}
+  .delete-icon{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--danger-surface);color:var(--danger)}
+  .delete-icon svg{width:24px;height:24px;stroke-width:2}
+  .delete-md h3{font-size:24px;font-weight:500;line-height:32px;letter-spacing:-.02em}
+  .delete-md .b{padding:20px 32px;gap:20px}
+  .delete-copy{font-size:18px;line-height:28px;letter-spacing:-.014em;max-width:560px}
+  .delete-copy strong{font-weight:500}
+  .delete-md footer{padding:20px 32px 32px;gap:12px}
+  .delete-md .btn{min-height:40px;padding-inline:16px;font-size:16px}
+  .delete-md .btn-d{background:var(--danger)}
   .record-md header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:22px}
   .record-md h3{font-size:18px;letter-spacing:-.014em;line-height:28px}
   .modal-close{width:32px;height:32px;margin:-6px -6px 0 0;border-radius:6px;color:var(--text-2);display:grid;place-items:center;flex:none}
@@ -1075,7 +1087,7 @@ const close = () => {
   bd.classList.remove('on');
   modalSiblings().forEach(el => { el.inert = false; });
   md.innerHTML = '';
-  md.classList.remove('record-md');
+  md.classList.remove('record-md','delete-md');
   modalOpener?.focus();
   modalOpener = null;
 };
@@ -1093,7 +1105,7 @@ addEventListener('keydown', e => {
 });
 const open = h => {
   modalOpener = document.activeElement;
-  md.classList.remove('record-md');
+  md.classList.remove('record-md','delete-md');
   md.innerHTML = h;
   md.setAttribute('role','dialog');
   md.setAttribute('aria-modal','true');
@@ -1419,19 +1431,23 @@ function dlgEdit(id){
 }
 function dlgDel(id){
   const list = sorted(), i = list.findIndex(r => r.id === id);
-  const r = list[i], prev = list[i-1], next = list[i+1];
+  const r = list[i];
   const after = rebuildTimeline(list.filter(x => x.id !== id));
-  const w0 = prev ? prev.from : r.from, w1 = next ? (next.to || NOW) : (r.to || NOW);
-  open(`<header><h3>Delete record?</h3></header><div class="b">
-    <div><b>${label(r)}</b> · ${fmt(r.from)} – ${fmt(r.to)}<br>
-      <span style="color:var(--text-2)">Set by ${esc(r.by)}</span></div>
-    <div class="pv"><div class="cap">What happens</div>
-      <div class="pvrow"><div class="lab">Before</div>${bar(list, w0, w1)}</div>
-      <div class="pvrow"><div class="lab">After</div>${bar(after, w0, w1)}</div>
-      <div class="ticks"><span>${shrt(w0)}</span><span>${shrt(w1)}</span></div>
-      <div class="pvt w">The remaining events keep their start dates. Each status remains in effect until the next recorded status change.</div></div>
-  </div><footer><button class="btn btn-g" id="x">Cancel</button>
-    <button class="btn btn-d" id="ok">Delete record</button></footer>`);
+  const state = r.st === 'ok' ? 'Available' : 'Unavailable';
+  const nextCurrent = after.find(record => record.to === null);
+  const effect = r.to === null
+    ? `Deleting the record will set the unit as ${nextCurrent?.st === 'ok' ? 'available' : 'unavailable'} for charging.`
+    : 'Deleting the record will reconnect the surrounding availability history.';
+  open(`<header><div class="delete-heading"><span class="delete-icon">${IC.bin}</span><h3 id="dialogTitle">Delete availability record</h3></div>
+    <button class="modal-close" id="xClose" type="button" aria-label="Close delete availability dialog" data-autofocus>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button></header><div class="b delete-copy">
+    <p>You are about to delete the availability record with ${r.to === null ? 'current ' : ''}state <strong>${state}</strong> from ${fmt(r.from)}.</p>
+    <p>${effect}</p><p>This action cannot be undone.</p>
+  </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
+    <button class="btn btn-d" id="ok" type="button">Delete record</button></footer>`);
+  md.classList.add('delete-md');
+  document.getElementById('xClose').onclick = close;
   document.getElementById('x').onclick = close;
   document.getElementById('ok').onclick = () => { recs = after.map(x=>({...x, isNew:undefined})); close(); render(); };
 }
