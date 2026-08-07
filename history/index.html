@@ -413,16 +413,6 @@
     <button type="button" data-v="toggle">A1 · Toggle</button>
     <button type="button" data-v="seg" class="on">A2 · Segment control</button>
   </div>
-  <div class="devsub">Availability details</div>
-  <div class="devnav" id="detailsVar">
-    <button type="button" data-v="hint" class="on">V1 · Inline note</button>
-    <button type="button" data-v="alert">V2 · Alert block</button>
-  </div>
-  <div class="devsub">Notes</div>
-  <div class="devnav" id="commentVar">
-    <button type="button" data-v="button">V1 · Add Notes</button>
-    <button type="button" data-v="always" class="on">V2 · Always visible</button>
-  </div>
   <label><input type="checkbox" id="cSession"> Active charging session on Charger 01</label>
   <label><input type="checkbox" id="cFields" checked> Partner / Location / Rate filled</label>
   <label><input type="checkbox" id="cClock" checked> Live clock (real date &amp; time)</label>
@@ -499,10 +489,8 @@ const sc = {session:false, fields:true};
 let page = 'availability';
 /* контрол статуса в блоке Availability: 'toggle' (тумблер) | 'seg' (сегмент-контрол) */
 let availCtl = 'seg';
-/* подсказка при смене причины без смены статуса: 'hint' (строка под reason) | 'alert' (блок внизу) */
-let detailNote = 'hint';
-/* Комментарий добавляется по кнопке или всегда показывается как поле. */
-let commentMode = 'always';
+/* Единый сценарий: смена причины показывается alert-карточкой, Notes всегда видны. */
+const commentMode = 'always';
 let historyOpen = true;
 
 /* =========================== UTILS =========================== */
@@ -774,10 +762,7 @@ function pageGeneral(){
   const fromAt = changed ? gDraft.from : c.from;
   /* Сменили только причину, статус прежний — поясняем, что это отдельная запись */
   const reasonOnly = changed && gDraft.st === c.st;
-  const reasonHint = reasonOnly && detailNote === 'hint'
-    ? `<div class="fhint">${IC.info} Changing the reason will be saved as a new record</div>`
-    : '';
-  const reasonAlert = reasonOnly && detailNote === 'alert'
+  const reasonAlert = reasonOnly
     ? `<div class="adalert" role="status">${IC.infoSolid}<span>Changing the reason will be saved as a new record</span></div>`
     : '';
   /* блокируется только переключение статуса; смена reason/comment внутри статуса разрешена всегда */
@@ -876,11 +861,7 @@ function pageGeneral(){
           <div><label>Reason unavailable <span class="opt">(optional)</span></label>
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
-            ${reasonHint}${reasonAlert}</div>` : ''}
-        <div><label>Start from</label><div class="dtrow">
-          <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
-          <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
-        </div></div>
+            ${reasonAlert}</div>` : ''}
         ${commentMode === 'always'
           ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
               <textarea class="ctrl" id="gComment" placeholder="Add note"${changed?'':' disabled'}>${esc(eff.comment)}</textarea></div>`
@@ -888,6 +869,10 @@ function pageGeneral(){
              ${changed ? (gCommentOpen ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
                <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
                : `<button class="add-comment" id="gAddComment" type="button">Add Notes</button>`) : ''}`}
+        <div><label>Start from</label><div class="dtrow">
+          <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
+          <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
+        </div></div>
         <div id="gErr"></div>
       </div>
     </div>
@@ -1266,21 +1251,6 @@ document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
   availCtl = a.dataset.v;
   gClear();
   document.querySelectorAll('#ctlVar button').forEach(x => x.classList.toggle('on', x === a));
-  page = 'general';
-  render();
-});
-/* переключение презентации подсказки в Availability details */
-document.querySelectorAll('#detailsVar button').forEach(a => a.onclick = () => {
-  detailNote = a.dataset.v;
-  document.querySelectorAll('#detailsVar button').forEach(x => x.classList.toggle('on', x === a));
-  page = 'general';
-  render();
-});
-/* переключение показа комментария: по кнопке или постоянно видимое поле */
-document.querySelectorAll('#commentVar button').forEach(a => a.onclick = () => {
-  commentMode = a.dataset.v;
-  gCommentOpen = false;
-  document.querySelectorAll('#commentVar button').forEach(x => x.classList.toggle('on', x === a));
   page = 'general';
   render();
 });
