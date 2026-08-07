@@ -263,6 +263,23 @@
   .status-dropdown-option:disabled{color:var(--g-400);cursor:not-allowed}
   .status-dropdown-option:disabled:hover{background:transparent}
   .status-dropdown-divider{height:1px;margin:4px 10px;background:var(--border)}
+
+  /* ============ AVAILABILITY HISTORY VARIANTS ============ */
+  .availability-table-wrap{overflow-x:auto}
+  .availability-timeline{min-width:760px}
+  .availability-timeline-head,.availability-timeline-row{display:grid;grid-template-columns:28px minmax(220px,1.1fr) minmax(170px,1fr) minmax(140px,.8fr) minmax(120px,.7fr) 52px;gap:14px}
+  .availability-timeline-head{padding:14px 0 13px;color:var(--text-3);font-size:14px;font-weight:500;border-bottom:1px solid var(--border)}
+  .availability-timeline-row{min-height:82px;padding:14px 0;border-bottom:1px solid var(--border);align-items:start}
+  .availability-timeline-row:hover{background:#fafafa}
+  .timeline-marker{position:relative;display:flex;justify-content:center;height:100%}
+  .timeline-marker::after{content:"";position:absolute;top:12px;bottom:-28px;width:1px;background:var(--border)}
+  .availability-timeline-row:last-child .timeline-marker::after{display:none}
+  .timeline-marker .dot{position:relative;z-index:1;margin-top:5px;width:10px;height:10px;border:2px solid #fff;box-sizing:content-box}
+  .timeline-status{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .timeline-status .stat{white-space:normal;line-height:20px}
+  .timeline-date{color:var(--text-3);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
+  .timeline-cell{padding-top:1px;line-height:20px;min-width:0}
+  .timeline-action{justify-self:end;margin-top:-1px}
   .pvrow{margin-bottom:10px}
   .pvrow .lab{font-size:11.5px;color:var(--text-3);margin-bottom:4px}
   .bar .sg{display:grid;place-items:center;font-size:10.5px;font-weight:500;white-space:nowrap;overflow:hidden;padding:0 4px;min-width:2px}
@@ -354,6 +371,7 @@
   .vswitch a.on{background:var(--text);color:#fff}
   .vswitch a.on:hover{background:var(--text)}
   @media(max-width:1000px){.cols{grid-template-columns:1fr}.devwrap{display:none}.vswitch{display:none}.frow{grid-template-columns:1fr;gap:16px}}
+  @media(max-width:760px){.availability-timeline{min-width:0}.availability-timeline-head{display:none}.availability-timeline-row{grid-template-columns:24px minmax(0,1fr) 32px;gap:8px;min-height:0;padding:16px 0}.timeline-marker{grid-row:1 / span 4}.timeline-marker::after{bottom:-32px}.timeline-status{grid-column:2}.timeline-notes,.timeline-partner,.timeline-by{grid-column:2;color:var(--text-2);font-size:13px}.timeline-notes:empty,.timeline-partner:empty,.timeline-by:empty{display:none}.timeline-action{grid-column:3;grid-row:1;align-self:start}.timeline-cell[data-label]::before{content:attr(data-label) ': ';color:var(--text-3)}}
   @media(max-width:560px){.bd{padding:12px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}.record-status-row{align-items:flex-start;flex-direction:column;gap:10px}.record-status-row .seg,.status-dropdown{width:100%}}
 </style>
 </head>
@@ -430,6 +448,12 @@
     <button type="button" data-v="toggle">A1 · Toggle</button>
     <button type="button" data-v="seg" class="on">A2 · Segment control</button>
     <button type="button" data-v="dropdown">A3 · Dropdown</button>
+  </div>
+  <div class="devsub">Availability table</div>
+  <div class="devnav" id="tableVar">
+    <button type="button" data-v="start" class="on">B1 · Start from</button>
+    <button type="button" data-v="period">B2 · From-to</button>
+    <button type="button" data-v="timeline">B3 · Timeline</button>
   </div>
   <label><input type="checkbox" id="cSession"> Active charging session on Charger 01</label>
   <label><input type="checkbox" id="cFields" checked> Partner / Location / Rate filled</label>
@@ -512,6 +536,8 @@ const sc = {session:false, fields:true};
 let page = 'availability';
 /* контрол статуса в блоке Availability: 'toggle' (тумблер) | 'seg' (сегмент-контрол) */
 let availCtl = 'seg';
+/* Представление истории: B1 — начало, B2 — границы периода, B3 — таймлайн. */
+let availTable = 'start';
 /* Единый сценарий: смена причины показывается alert-карточкой, Notes всегда видны. */
 const commentMode = 'always';
 let historyOpen = true;
@@ -648,23 +674,45 @@ function pageAvailability(){
     ? 'Available'
     : (r.reason ? `Unavailable / ${r.reason}` : 'Unavailable');
   const useCombinedStatus = availCtl === 'dropdown';
-  const body = list.map(r => `
+  const statusText = r => useCombinedStatus || availTable === 'timeline'
+    ? combinedStatus(r)
+    : (r.st === 'ok' ? 'Available' : 'Unavailable');
+  const partner = r => r === list[0] && r.st === 'no' ? '' : 'Acme Corp';
+  const action = r => r.system ? '' : `<button class="kb" data-k="${r.id}" aria-label="Record actions">${IC.dots}</button>`;
+  const tableBody = list.map(r => `
     <tr class="${r.id===fresh?'fresh':''}">
-      <td>${fmt(r.from)}</td>
-      <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${useCombinedStatus ? esc(combinedStatus(r)) : (r.st==='ok'?'Available':'Unavailable')}</span></span></td>
+      <td>${availTable === 'period' ? `${fmt(r.from)} – ${fmt(r.to)}` : fmt(r.from)}</td>
+      <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${esc(statusText(r))}</span></span></td>
       ${useCombinedStatus ? '' : `<td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' ? '' : esc(r.reason)}</td>`}
       <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${esc(r.comment)}</td>
+      <td${!partner(r)?' class="muted"':''}>${partner(r) || '—'}</td>
       <td${r.by==='System'?' class="muted"':''}>${esc(r.by)}</td>
-      <td class="act">${r.system?'':`<button class="kb" data-k="${r.id}">${IC.dots}</button>`}</td>
+      <td class="act">${action(r)}</td>
     </tr>`).join('');
+  const timeline = list.map(r => `
+    <div class="availability-timeline-row ${r.id===fresh?'fresh':''}" role="listitem">
+      <div class="timeline-marker" aria-hidden="true"><span class="dot ${r.st}"></span></div>
+      <div class="timeline-status"><span class="stat">${esc(combinedStatus(r))}</span><time class="timeline-date" datetime="${r.from}">${fmt(r.from)}</time></div>
+      <div class="timeline-cell timeline-notes${!r.comment?' muted':''}" data-label="Notes">${esc(r.comment)}</div>
+      <div class="timeline-cell timeline-partner${!partner(r)?' muted':''}" data-label="Partner">${partner(r) || '—'}</div>
+      <div class="timeline-cell timeline-by${r.by==='System'?' muted':''}" data-label="Changed by">${esc(r.by)}</div>
+      <div class="timeline-action">${action(r)}</div>
+    </div>`).join('');
+
+  const content = availTable === 'timeline' ? `
+    <div class="availability-timeline" role="list" aria-label="Availability history">
+      <div class="availability-timeline-head" aria-hidden="true"><span></span><span>Status</span><span>Notes</span><span>Partner</span><span>Changed by</span><span></span></div>
+      ${timeline}
+    </div>` : `
+    <div class="availability-table-wrap"><table class="availability-table${useCombinedStatus ? ' availability-table--dropdown' : ''}"><thead><tr>
+      <th style="width:${availTable === 'period' ? 300 : 290}px"><button class="sort">${availTable === 'period' ? 'From-to' : 'Start from'} ${IC.sort}</button></th>
+      <th style="width:${useCombinedStatus ? 330 : 210}px">Status</th>${useCombinedStatus ? '' : '<th style="width:170px">Reason</th>'}<th>Notes</th><th style="width:150px">Partner</th><th style="width:140px">User</th><th style="width:52px"></th>
+    </tr></thead><tbody>${tableBody}</tbody></table></div>`;
 
   return `<h2>Availability</h2>
   <div class="lead">Manage the unit’s availability over time.</div>
   <div style="margin:22px 0 26px"><button class="btn btn-p" id="bRec">Record availability</button></div>
-  <table class="availability-table${useCombinedStatus ? ' availability-table--dropdown' : ''}"><thead><tr>
-    <th style="width:290px"><button class="sort">Start from ${IC.sort}</button></th>
-    <th style="width:${useCombinedStatus ? 330 : 210}px">Status</th>${useCombinedStatus ? '' : '<th style="width:170px">Reason</th>'}<th>Notes</th><th style="width:140px">User</th><th style="width:52px"></th>
-  </tr></thead><tbody>${body}</tbody></table>`;
+  ${content}`;
 }
 function bindAvailability(){
   document.getElementById('bRec').onclick = dlgRecord;
@@ -1413,6 +1461,13 @@ document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
   gClear();
   document.querySelectorAll('#ctlVar button').forEach(x => x.classList.toggle('on', x === a));
   page = 'general';
+  render();
+});
+document.querySelectorAll('#tableVar button').forEach(button => button.onclick = () => {
+  availTable = button.dataset.v;
+  document.querySelectorAll('#tableVar button').forEach(item => item.classList.toggle('on', item === button));
+  page = 'availability';
+  historyOpen = true;
   render();
 });
 document.addEventListener('pointerdown', event => {
