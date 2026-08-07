@@ -851,7 +851,7 @@ function pageGeneral(){
   const fromAt = changed ? gDraft.from : c.from;
   /* Сменили только причину, статус прежний — поясняем, что это отдельная запись */
   const reasonOnly = changed && gDraft.st === c.st;
-  const reasonAlert = reasonOnly
+  const reasonAlert = reasonOnly && availCtl !== 'dropdown'
     ? `<div class="adalert" role="status">${IC.infoSolid}<span>Changing the reason will be saved as a new record</span></div>`
     : '';
   /* блокируется только переключение статуса; смена reason/comment внутри статуса разрешена всегда */
@@ -965,7 +965,7 @@ function pageGeneral(){
           <div><label>Reason unavailable <span class="opt">(optional)</span></label>
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
-            ${reasonAlert}</div>` : ''}
+            </div>` : ''}
         ${commentMode === 'always'
           ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
               <textarea class="ctrl" id="gComment" placeholder="Add note"${changed?'':' disabled'}>${esc(eff.comment)}</textarea></div>`
@@ -977,6 +977,7 @@ function pageGeneral(){
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
         </div></div>
+        ${reasonAlert}
         <div id="gErr"></div>
       </div>
     </div>
