@@ -264,6 +264,7 @@
   .status-dropdown-option:disabled:hover{background:transparent}
   .status-dropdown-divider{height:1px;margin:4px 10px;background:var(--border)}
   .status-dropdown .dot.no{background:var(--g-400)}
+  .availability-table--dropdown .dot.no{background:var(--g-400)}
   .pvrow{margin-bottom:10px}
   .pvrow .lab{font-size:11.5px;color:var(--text-3);margin-bottom:4px}
   .bar .sg{display:grid;place-items:center;font-size:10.5px;font-weight:500;white-space:nowrap;overflow:hidden;padding:0 4px;min-width:2px}
@@ -662,9 +663,9 @@ function pageAvailability(){
   return `<h2>Availability</h2>
   <div class="lead">Manage the unit’s availability over time.</div>
   <div style="margin:22px 0 26px"><button class="btn btn-p" id="bRec">Record availability</button></div>
-  <table><thead><tr>
+  <table class="availability-table${useCombinedStatus ? ' availability-table--dropdown' : ''}"><thead><tr>
     <th style="width:290px"><button class="sort">Start from ${IC.sort}</button></th>
-    <th style="width:210px">Status</th>${useCombinedStatus ? '' : '<th style="width:170px">Reason</th>'}<th>Notes</th><th style="width:140px">User</th><th style="width:52px"></th>
+    <th style="width:${useCombinedStatus ? 330 : 210}px">Status</th>${useCombinedStatus ? '' : '<th style="width:170px">Reason</th>'}<th>Notes</th><th style="width:140px">User</th><th style="width:52px"></th>
   </tr></thead><tbody>${body}</tbody></table>`;
 }
 function bindAvailability(){
