@@ -18,7 +18,8 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Inter,system-ui,-apple-system,sans-serif;color:var(--text);background:#fff;
-       font-size:14px;line-height:20px;letter-spacing:-.006em;-webkit-font-smoothing:antialiased}
+       font-size:14px;line-height:20px;letter-spacing:-.006em;font-synthesis:none;
+       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
   button,select,input,textarea{font-family:inherit;font-size:14px;line-height:20px;letter-spacing:-.006em;color:var(--text)}
   button{cursor:pointer;border:none;background:none}
   svg{display:block;flex:none}
@@ -48,7 +49,7 @@
   .uicon{width:40px;height:40px;border-radius:50%;background:var(--g-50);display:grid;place-items:center;color:var(--text-2);flex:none}
   .utitle{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .utitle h1{font-size:22px;font-weight:600;letter-spacing:-.025em}
-  .tag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:7px;
+  .tag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:6px;
        padding:3px 9px;font-size:13px;color:var(--text-3)}
   .umeta{display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:13.5px;margin-top:7px}
   .umeta .sep{color:var(--g-300)}
@@ -88,7 +89,7 @@
   .hr{height:1px;background:var(--border);margin:22px 0}
 
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:32px;padding:6px 12px;border-radius:var(--r);font-weight:500;white-space:nowrap}
-  .btn-p{background:var(--text);color:#fff}
+  .btn-p{background:var(--text);color:#fff;box-shadow:0 1px 1px rgba(0,0,0,.08)}
   .btn-p:hover:not(:disabled){background:#262626}
   .btn-p:disabled{background:var(--g-300);cursor:not-allowed}
   .btn-g{border:1px solid var(--border);background:#fff}
@@ -102,7 +103,7 @@
   .bo-only{font-size:12px;font-weight:400;color:var(--text-3);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
   .fr{display:flex;flex-direction:column;gap:16px;max-width:560px}
   label{display:block;margin-bottom:8px;color:var(--text-2);font-size:14px;font-weight:500;line-height:20px}
-  .ctrl{width:100%;min-height:32px;border:1px solid var(--g-300);border-radius:var(--r);padding:6px 12px;background:#fff;line-height:20px}
+  .ctrl{width:100%;min-height:32px;border:1px solid var(--border);border-radius:var(--r);padding:6px 12px;background:#fff;line-height:20px}
   .ctrl::placeholder{color:var(--g-400)}
   .ctrl:focus{outline:2px solid var(--text);outline-offset:-1px}
   select.ctrl{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23757575' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
@@ -137,11 +138,11 @@
   .thead h3{font-size:15px;font-weight:600}
   .thead .h{color:var(--text-2);font-size:13.5px;margin-top:3px}
   table{width:100%;border-collapse:collapse}
-  th{text-align:left;font-weight:400;color:var(--text-2);font-size:14px;padding:0 14px 12px 0;border-bottom:1px solid var(--border)}
+  th{text-align:left;font-weight:500;color:var(--text-3);font-size:14px;padding:14px 14px 13px 0;border-bottom:1px solid var(--border)}
   th .sort{display:inline-flex;align-items:center;gap:5px;color:var(--text-2)}
   th .sort:hover{color:var(--text)}
-  td{padding:16px 14px 16px 0;border-bottom:1px solid var(--border);vertical-align:middle}
-  tbody tr:hover{background:#fcfcfc}
+  td{padding:14px 14px 14px 0;border-bottom:1px solid var(--border);vertical-align:middle;font-variant-numeric:tabular-nums}
+  tbody tr:hover{background:#fafafa}
   .stat{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
   .dot{width:7px;height:7px;border-radius:50%;flex:none}
   .dot.ok{background:var(--green)} .dot.no{background:var(--danger)}
@@ -150,7 +151,7 @@
   /* строки-разрывы: период, когда партнёр/сайт не были назначены */
   tr.gaprow td{color:var(--g-400);background:#fcfcfc}
   tr.gaprow:hover td{background:var(--g-50)}
-  .kb{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:var(--text-3);margin-left:auto}
+  .kb{width:32px;height:32px;border-radius:6px;display:grid;place-items:center;color:var(--text-3);margin-left:auto}
   .kb:hover,.kb.open{background:var(--g-50);color:var(--text-2)}
   td.act{width:52px;padding-right:0}
   .menu{position:absolute;background:#fff;border:1px solid var(--border);border-radius:10px;
