@@ -204,6 +204,7 @@
   .record-status-label{font-size:14px;font-weight:500}
   .record-status-row .seg,.record-status-row .status-dropdown{width:229px}
   .record-status-row .switch{margin-block:4px}
+  .record-status-badge{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:6px 12px;border:1px solid var(--border);border-radius:var(--r);background:#fff;font-weight:500;line-height:20px}
   .status-dropdown-trigger:disabled{background:var(--g-50);color:var(--text-3);cursor:not-allowed}
   .edit-status .seg button:disabled{cursor:default}
   .edit-status .seg button.on:disabled{opacity:1}
@@ -743,10 +744,7 @@ function pagePartners(){
     {from:shift('2024-03-01T00:00'), to:shift('2024-03-31T10:00'), name:'L-Charge',  now:false, charges:'1,000', ch:'Mar 1, 2025, 19:23 – Mar 31, 2025, 20:38'},
     {from:shift('2024-01-01T00:00'), to:shift('2024-01-31T23:59'), name:'L-Charge',  now:false, charges:'1,000', ch:'Jan 1, 2025, 2:17 – Jan 28, 2025, 9:47'},
   ];
-  const body = withGaps(d).map(r => r.gap
-    ? `<tr class="gaprow">${dcCell(r.from, r.to)}
-        <td>Not assigned</td><td>—</td><td>—</td><td class="act"></td></tr>`
-    : `<tr>${dcCell(r.from, r.to)}
+  const body = withGaps(d).filter(r => !r.gap).map(r => `<tr>${dcCell(r.from, r.to)}
         <td>${r.name}${r.now?`<span class="nowtag">${IC.chk} Assigned now</span>`:''}</td>
         <td>${r.charges}</td><td>${r.ch}</td>
         <td class="act"><button class="kb kbd">${IC.dots}</button></td></tr>`).join('');
@@ -764,10 +762,7 @@ function pageSites(){
     {from:shift('2024-07-01T00:00'), to:shift('2024-07-31T00:00'), name:'Tower Mission 1', now:false, partner:'Acme Corp', charges:'200'},
     {from:shift('2024-05-01T09:00'), to:shift('2024-06-15T00:00'), name:'Huston Site',     now:false, partner:'Ride Alto', charges:'200'},
   ];
-  const body = withGaps(d).map(r => r.gap
-    ? `<tr class="gaprow">${dcCell(r.from, r.to)}
-        <td>Not assigned</td><td>—</td><td>—</td><td class="act"></td></tr>`
-    : `<tr>${dcCell(r.from, r.to)}
+  const body = withGaps(d).filter(r => !r.gap).map(r => `<tr>${dcCell(r.from, r.to)}
         <td>${r.name}${r.now?`<span class="nowtag">${IC.chk} Deployed now</span>`:''}</td>
         <td>${r.partner}</td><td>${r.charges}</td>
         <td class="act"><button class="kb kbd">${IC.dots}</button></td></tr>`).join('');
@@ -1377,14 +1372,7 @@ function dlgEdit(id){
     error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
   }
   function statusControlMarkup(){
-    if(availCtl === 'toggle') return `<button class="switch ${s.st==='ok'?'on':''}" type="button" aria-label="Availability status: ${s.st==='ok'?'available':'unavailable'}" aria-pressed="${s.st==='ok'}" disabled><i></i></button>`;
-    if(availCtl === 'seg') return `<div class="seg" role="group" aria-label="Availability status">
-      ${['no','ok'].map(st => `<button type="button" class="${s.st===st?'on':''}" disabled aria-pressed="${s.st===st}"><span class="dot ${st}"></span> ${st==='ok'?'Available':'Unavailable'}</button>`).join('')}</div>`;
-    const selected = AVAILABILITY_OPTIONS[availabilityOptionIndex(s)];
-    return `<div class="status-dropdown"><button class="status-dropdown-trigger" type="button" aria-label="Availability status: ${selected.label}" disabled>
-      <span class="status-dropdown-value"><span class="dot ${selected.st}"></span>${selected.label}</span>
-      <svg class="status-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-    </button></div>`;
+    return `<span class="record-status-badge" aria-label="Current availability status: ${s.st==='ok'?'Available':'Unavailable'}"><span class="dot ${s.st}"></span>${s.st==='ok'?'Available':'Unavailable'}</span>`;
   }
   function paintForm(){
     $('eStatusControl').innerHTML = statusControlMarkup();
