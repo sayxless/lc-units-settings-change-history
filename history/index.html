@@ -807,8 +807,8 @@ function pageGeneral(){
   const selectedStatusOption = AVAILABILITY_OPTIONS[availabilityOptionIndex(eff)];
   const statusControl = availCtl === 'seg' ? `
     <div class="seg seg-inline" id="gSeg">
-      <button data-v="ok" class="${draft==='ok'?'on':''}" ${(draft!=='ok'&&!sc.fields)?'disabled':''}><span class="dot ok"></span> Available</button>
       <button data-v="no" class="${draft==='no'?'on':''}" ${(draft!=='no'&&sc.session)?'disabled':''}><span class="dot no"></span> Unavailable</button>
+      <button data-v="ok" class="${draft==='ok'?'on':''}" ${(draft!=='ok'&&!sc.fields)?'disabled':''}><span class="dot ok"></span> Available</button>
     </div>` : availCtl === 'dropdown' ? `
     <div class="status-dropdown ${gStatusOpen?'open':''}" id="gStatusDropdown">
       <button class="status-dropdown-trigger" id="gStatusTrigger" type="button" aria-haspopup="listbox" aria-expanded="${gStatusOpen}" aria-controls="gStatusList">
@@ -1174,7 +1174,7 @@ function dlgRecord(){
   function statusControlMarkup(){
     if(availCtl === 'toggle') return `<button class="switch ${s.st==='ok'?'on':''}" id="fStatusSwitch" type="button" aria-label="Availability status: ${s.st==='ok'?'available':'unavailable'}" aria-pressed="${s.st==='ok'}"${statusDisabled(s.st==='ok'?'no':'ok')?' disabled':''}><i></i></button>`;
     if(availCtl === 'seg') return `<div class="seg" id="sSt" role="group" aria-label="Availability status">
-      ${['ok','no'].map(st => `<button type="button" data-v="${st}" class="${s.st===st?'on':''}" aria-pressed="${s.st===st}"${statusDisabled(st)?' disabled':''}><span class="dot ${st}"></span> ${st==='ok'?'Available':'Unavailable'}</button>`).join('')}</div>`;
+      ${['no','ok'].map(st => `<button type="button" data-v="${st}" class="${s.st===st?'on':''}" aria-pressed="${s.st===st}"${statusDisabled(st)?' disabled':''}><span class="dot ${st}"></span> ${st==='ok'?'Available':'Unavailable'}</button>`).join('')}</div>`;
     const selected = AVAILABILITY_OPTIONS[availabilityOptionIndex(s)];
     return `<div class="status-dropdown ${statusOpen?'open':''}" id="fStatusDropdown">
       <button class="status-dropdown-trigger" id="fStatusTrigger" type="button" aria-haspopup="listbox" aria-expanded="${statusOpen}" aria-controls="fStatusList">
@@ -1329,7 +1329,7 @@ function dlgEdit(id){
   function statusControlMarkup(){
     if(availCtl === 'toggle') return `<button class="switch ${s.st==='ok'?'on':''}" type="button" aria-label="Availability status: ${s.st==='ok'?'available':'unavailable'}" aria-pressed="${s.st==='ok'}" disabled><i></i></button>`;
     if(availCtl === 'seg') return `<div class="seg" role="group" aria-label="Availability status">
-      ${['ok','no'].map(st => `<button type="button" class="${s.st===st?'on':''}" disabled aria-pressed="${s.st===st}"><span class="dot ${st}"></span> ${st==='ok'?'Available':'Unavailable'}</button>`).join('')}</div>`;
+      ${['no','ok'].map(st => `<button type="button" class="${s.st===st?'on':''}" disabled aria-pressed="${s.st===st}"><span class="dot ${st}"></span> ${st==='ok'?'Available':'Unavailable'}</button>`).join('')}</div>`;
     const selected = AVAILABILITY_OPTIONS[availabilityOptionIndex(s)];
     return `<div class="status-dropdown"><button class="status-dropdown-trigger" type="button" aria-label="Availability status: ${selected.label}" disabled>
       <span class="status-dropdown-value"><span class="dot ${selected.st}"></span>${selected.label}</span>
