@@ -246,6 +246,21 @@
   .seg{display:flex;background:var(--g-50);border-radius:6px;padding:0;gap:0}
   .seg button{flex:1;min-height:32px;padding:6px 12px;border-radius:6px;color:var(--text-2);font-size:14px;line-height:20px;display:flex;align-items:center;justify-content:center;gap:8px}
   .seg button.on{background:#fff;border:1px solid var(--g-200);color:var(--text);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .status-dropdown{position:relative;width:280px;flex:none}
+  .status-dropdown-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:32px;
+    padding:6px 12px;border:1px solid var(--border);border-radius:var(--r);background:#fff;color:var(--text);font-weight:500;text-align:left}
+  .status-dropdown-trigger:hover{background:#fafafa}
+  .status-dropdown-trigger:focus-visible,.status-dropdown-option:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+  .status-dropdown-value{display:inline-flex;align-items:center;gap:8px;min-width:0}
+  .status-dropdown-chevron{width:16px;height:16px;color:var(--text-2);transition:transform .15s}
+  .status-dropdown.open .status-dropdown-chevron{transform:rotate(180deg)}
+  .status-dropdown-menu{position:absolute;top:calc(100% + 4px);right:0;z-index:25;width:100%;padding:8px;
+    border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.12)}
+  .status-dropdown-option{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;padding:8px 10px;border-radius:6px;color:var(--text);text-align:left}
+  .status-dropdown-option:hover,.status-dropdown-option[aria-selected="true"]{background:var(--g-50)}
+  .status-dropdown-option:disabled{color:var(--g-400);cursor:not-allowed}
+  .status-dropdown-option:disabled:hover{background:transparent}
+  .status-dropdown .dot.no{background:var(--g-400)}
   .pvrow{margin-bottom:10px}
   .pvrow .lab{font-size:11.5px;color:var(--text-3);margin-bottom:4px}
   .bar .sg{display:grid;place-items:center;font-size:10.5px;font-weight:500;white-space:nowrap;overflow:hidden;padding:0 4px;min-width:2px}
@@ -337,7 +352,7 @@
   .vswitch a.on{background:var(--text);color:#fff}
   .vswitch a.on:hover{background:var(--text)}
   @media(max-width:1000px){.cols{grid-template-columns:1fr}.devwrap{display:none}.vswitch{display:none}.frow{grid-template-columns:1fr;gap:16px}}
-  @media(max-width:560px){.bd{padding:12px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}.record-status-row{align-items:flex-start;flex-direction:column;gap:10px}.record-status-row .seg{width:100%}}
+  @media(max-width:560px){.bd{padding:12px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}.record-status-row{align-items:flex-start;flex-direction:column;gap:10px}.record-status-row .seg,.status-dropdown{width:100%}}
 </style>
 </head>
 <body>
@@ -412,6 +427,7 @@
   <div class="devnav" id="ctlVar">
     <button type="button" data-v="toggle">A1 · Toggle</button>
     <button type="button" data-v="seg" class="on">A2 · Segment control</button>
+    <button type="button" data-v="dropdown">A3 · Dropdown</button>
   </div>
   <label><input type="checkbox" id="cSession"> Active charging session on Charger 01</label>
   <label><input type="checkbox" id="cFields" checked> Partner / Location / Rate filled</label>
@@ -458,6 +474,11 @@ function computeShift(){
 function tick(){ NOW = liveClock ? realNow() : ANCHOR; }
 const ME = 'Nick Smith';
 const REASONS = ['Down','On Hold','Planned Maintenance'];
+const AVAILABILITY_OPTIONS = [
+  {st:'ok', reason:'', label:'Available'},
+  {st:'no', reason:'', label:'Unavailable'},
+  ...REASONS.map(reason => ({st:'no', reason, label:`Unavailable / ${reason}`})),
+];
 const SESSIONS = [
   {id:'CH-1201', from:'2026-06-10T09:10', to:shift('2026-06-10T10:05')},
   {id:'CH-1202', from:'2026-06-10T12:00', to:shift('2026-06-10T13:20')},
@@ -523,6 +544,11 @@ function rebuildTimeline(list){
 }
 const cur = () => recs.find(r => r.to === null);
 const label = r => r.st === 'ok' ? 'Available' : (r.reason ? `Unavailable · ${r.reason}` : 'Unavailable');
+const availabilityOptionIndex = state => Math.max(0, AVAILABILITY_OPTIONS.findIndex(option =>
+  option.st === state.st && option.reason === (state.reason || '')));
+const availabilityOptionDisabled = (option, currentStatus) => option.st !== currentStatus && (
+  (option.st === 'no' && sc.session) || (option.st === 'ok' && !sc.fields)
+);
 /* Записи различают статус и причина. Комментарий — не различитель:
    два одинаковых статуса подряд недопустимы, даже с разными комментариями. */
 const same = (a,b) => a.st === b.st && (a.reason||'') === (b.reason||'');
@@ -772,6 +798,26 @@ function pageGeneral(){
     <u>Go to Live charging</u> to stop it, or wait for it to finish.</div>`;
   if(toggleBlocked && draft==='no') gate = `<div class="gate">To make the unit available, fill in:
     <ul><li><u>Partner</u></li><li><u>Location</u></li><li><u>Individual clients rate</u></li></ul></div>`;
+  const selectedStatusOption = AVAILABILITY_OPTIONS[availabilityOptionIndex(eff)];
+  const statusControl = availCtl === 'seg' ? `
+    <div class="seg seg-inline" id="gSeg">
+      <button data-v="ok" class="${draft==='ok'?'on':''}" ${(draft!=='ok'&&!sc.fields)?'disabled':''}><span class="dot ok"></span> Available</button>
+      <button data-v="no" class="${draft==='no'?'on':''}" ${(draft!=='no'&&sc.session)?'disabled':''}><span class="dot no"></span> Unavailable</button>
+    </div>` : availCtl === 'dropdown' ? `
+    <div class="status-dropdown ${gStatusOpen?'open':''}" id="gStatusDropdown">
+      <button class="status-dropdown-trigger" id="gStatusTrigger" type="button" aria-haspopup="listbox" aria-expanded="${gStatusOpen}" aria-controls="gStatusList">
+        <span class="status-dropdown-value"><span class="dot ${selectedStatusOption.st}"></span>${selectedStatusOption.label}</span>
+        <svg class="status-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      ${gStatusOpen ? `<div class="status-dropdown-menu" id="gStatusList" role="listbox" aria-label="Current status">
+        ${AVAILABILITY_OPTIONS.map((option, index) => {
+          const selected = index === availabilityOptionIndex(eff);
+          const disabled = availabilityOptionDisabled(option, draft);
+          return `<button class="status-dropdown-option" id="gStatusOption${index}" type="button" role="option" data-dd-index="${index}" aria-selected="${selected}" tabindex="${index===gStatusFocus?'0':'-1'}"${disabled?' disabled':''}>
+            <span class="dot ${option.st}"></span>${option.label}</button>`;
+        }).join('')}
+      </div>` : ''}
+    </div>` : `<button class="switch ${draft==='ok'?'on':''}" id="gSw" ${toggleBlocked?'disabled':''}><i></i></button>`;
 
   return `<h2>General</h2><div class="lead">Manage unit general settings.</div>
   <div class="hr"></div>
@@ -846,22 +892,18 @@ function pageGeneral(){
         on or off physically.</p></div>
     <div class="fr">
       <div class="swrow">
-        <div style="font-weight:500">${availCtl === 'seg' ? 'Current status' : 'Available for charging'}</div>
-        ${availCtl === 'seg' ? `
-          <div class="seg seg-inline" id="gSeg">
-            <button data-v="ok" class="${draft==='ok'?'on':''}" ${(draft!=='ok'&&!sc.fields)?'disabled':''}><span class="dot ok"></span> Available</button>
-            <button data-v="no" class="${draft==='no'?'on':''}" ${(draft!=='no'&&sc.session)?'disabled':''}><span class="dot no"></span> Unavailable</button>
-          </div>`
-        : `<button class="switch ${draft==='ok'?'on':''}" id="gSw" ${toggleBlocked?'disabled':''}><i></i></button>`}
+        <div style="font-weight:500">${availCtl === 'toggle' ? 'Available for charging' : 'Current status'}</div>
+        ${statusControl}
       </div>
       ${gate}
       <div class="adet">
         <div class="adet-h"><h4>Details</h4><span class="bo-only">Backoffice only</span></div>
-        ${draft==='no' ? `
+        ${draft==='no' && availCtl !== 'dropdown' ? `
           <div><label>Reason unavailable <span class="opt">(optional)</span></label>
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
             ${reasonAlert}</div>` : ''}
+        ${availCtl === 'dropdown' ? reasonAlert : ''}
         ${commentMode === 'always'
           ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
               <textarea class="ctrl" id="gComment" placeholder="Add note"${changed?'':' disabled'}>${esc(eff.comment)}</textarea></div>`
@@ -899,6 +941,53 @@ function render(){
     document.querySelectorAll('#gSeg button').forEach(b => {
       if(!b.disabled) b.onclick = () => gApply({st: b.dataset.v});
     });
+    const statusTrigger = document.getElementById('gStatusTrigger');
+    if(statusTrigger){
+      const state = gDraft || {st:cur().st, reason:cur().reason||''};
+      const focusStatusOption = index => requestAnimationFrame(() => document.getElementById(`gStatusOption${index}`)?.focus());
+      const nextStatusOption = (index, step) => {
+        for(let offset = 1; offset <= AVAILABILITY_OPTIONS.length; offset++){
+          const candidate = (index + step * offset + AVAILABILITY_OPTIONS.length) % AVAILABILITY_OPTIONS.length;
+          if(!availabilityOptionDisabled(AVAILABILITY_OPTIONS[candidate], state.st)) return candidate;
+        }
+        return index;
+      };
+      const openStatusDropdown = index => { gStatusOpen = true; gStatusFocus = index; render(); focusStatusOption(index); };
+      const closeStatusDropdown = () => { gStatusOpen = false; render(); requestAnimationFrame(() => document.getElementById('gStatusTrigger')?.focus()); };
+      const chooseStatusOption = index => {
+        const option = AVAILABILITY_OPTIONS[index];
+        if(availabilityOptionDisabled(option, state.st)) return;
+        gStatusOpen = false;
+        gStatusFocus = index;
+        gApply({st:option.st, reason:option.reason});
+      };
+      statusTrigger.onclick = () => {
+        if(gStatusOpen) closeStatusDropdown();
+        else openStatusDropdown(availabilityOptionIndex(state));
+      };
+      statusTrigger.onkeydown = event => {
+        if(event.key === 'ArrowDown' || event.key === 'ArrowUp'){
+          event.preventDefault();
+          openStatusDropdown(nextStatusOption(availabilityOptionIndex(state), event.key === 'ArrowDown' ? 1 : -1));
+        }
+        if(event.key === 'Escape' && gStatusOpen){ event.preventDefault(); closeStatusDropdown(); }
+      };
+      document.querySelectorAll('.status-dropdown-option').forEach(button => {
+        const index = Number(button.dataset.ddIndex);
+        button.onclick = () => chooseStatusOption(index);
+        button.onkeydown = event => {
+          let target = null;
+          if(event.key === 'ArrowDown') target = nextStatusOption(index, 1);
+          if(event.key === 'ArrowUp') target = nextStatusOption(index, -1);
+          if(event.key === 'Home') target = nextStatusOption(-1, 1);
+          if(event.key === 'End') target = nextStatusOption(0, -1);
+          if(target !== null){ event.preventDefault(); gStatusFocus = target; render(); focusStatusOption(target); return; }
+          if(event.key === 'Escape'){ event.preventDefault(); closeStatusDropdown(); return; }
+          if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); chooseStatusOption(index); }
+          if(event.key === 'Tab'){ gStatusOpen = false; requestAnimationFrame(render); }
+        };
+      });
+    }
     const gl = document.getElementById('gLink'); if(gl) gl.onclick = () => { page = 'availability'; render(); };
     const rz = document.getElementById('gReason'); if(rz) rz.onchange = e => gApply({reason: e.target.value});
     const cm = document.getElementById('gComment');
@@ -967,10 +1056,10 @@ const dtf = (l,id,d,t,h) => `<div><label>${l}</label><div class="dtrow">
   ${h?`<div class="hint">${h}</div>`:''}</div>`;
 
 /* ===== General: inline-редактирование статуса + остров сохранения ===== */
-let gDraft = null, gTouched = false, gCommentOpen = false, gMemo = {cm:{}, rs:{}};
+let gDraft = null, gTouched = false, gCommentOpen = false, gStatusOpen = false, gStatusFocus = 0, gMemo = {cm:{}, rs:{}};
 /* ключ состояния: комментарий привязан к паре «статус + причина» */
 const stateKey = r => r.st === 'no' ? `no|${r.reason||''}` : 'ok';
-function gClear(){ gDraft = null; gTouched = false; gCommentOpen = false; gMemo = {cm:{}, rs:{}}; }
+function gClear(){ gDraft = null; gTouched = false; gCommentOpen = false; gStatusOpen = false; gStatusFocus = 0; gMemo = {cm:{}, rs:{}}; }
 /* Записать можно только смену статуса или причины: два одинаковых статуса
    подряд не допускаются, разный комментарий их не различает. */
 function gChanged(c, d){
@@ -1237,8 +1326,8 @@ function dlgDel(id){
   document.getElementById('ok').onclick = () => { recs = after.map(x=>({...x, isNew:undefined})); close(); render(); };
 }
 
-document.getElementById('cSession').onchange = e => { sc.session = e.target.checked; render(); };
-document.getElementById('cFields').onchange  = e => { sc.fields  = e.target.checked; render(); };
+document.getElementById('cSession').onchange = e => { sc.session = e.target.checked; gStatusOpen = false; render(); };
+document.getElementById('cFields').onchange  = e => { sc.fields  = e.target.checked; gStatusOpen = false; render(); };
 document.getElementById('cReset').onclick = () => { seed(); render(); };
 document.getElementById('cClock').onchange = e => {
   liveClock = e.target.checked;
@@ -1254,6 +1343,14 @@ document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
   page = 'general';
   render();
 });
+document.addEventListener('pointerdown', event => {
+  if(!gStatusOpen) return;
+  const dropdown = document.getElementById('gStatusDropdown');
+  if(dropdown && !dropdown.contains(event.target)){
+    gStatusOpen = false;
+    render();
+  }
+}, true);
 render();
 
 // dev-панель: сворачивание в иконку
