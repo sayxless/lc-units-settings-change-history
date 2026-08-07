@@ -260,6 +260,7 @@
   .status-dropdown-option:hover,.status-dropdown-option[aria-selected="true"]{background:var(--g-50)}
   .status-dropdown-option:disabled{color:var(--g-400);cursor:not-allowed}
   .status-dropdown-option:disabled:hover{background:transparent}
+  .status-dropdown-divider{height:1px;margin:4px 10px;background:var(--border)}
   .status-dropdown .dot.no{background:var(--g-400)}
   .pvrow{margin-bottom:10px}
   .pvrow .lab{font-size:11.5px;color:var(--text-3);margin-bottom:4px}
@@ -814,7 +815,7 @@ function pageGeneral(){
           const selected = index === availabilityOptionIndex(eff);
           const disabled = availabilityOptionDisabled(option, draft);
           return `<button class="status-dropdown-option" id="gStatusOption${index}" type="button" role="option" data-dd-index="${index}" aria-selected="${selected}" tabindex="${index===gStatusFocus?'0':'-1'}"${disabled?' disabled':''}>
-            <span class="dot ${option.st}"></span>${option.label}</button>`;
+            <span class="dot ${option.st}"></span>${option.label}</button>${index===1?'<div class="status-dropdown-divider" role="separator"></div>':''}`;
         }).join('')}
       </div>` : ''}
     </div>` : `<button class="switch ${draft==='ok'?'on':''}" id="gSw" ${toggleBlocked?'disabled':''}><i></i></button>`;
@@ -903,7 +904,6 @@ function pageGeneral(){
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
             ${reasonAlert}</div>` : ''}
-        ${availCtl === 'dropdown' ? reasonAlert : ''}
         ${commentMode === 'always'
           ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
               <textarea class="ctrl" id="gComment" placeholder="Add note"${changed?'':' disabled'}>${esc(eff.comment)}</textarea></div>`
