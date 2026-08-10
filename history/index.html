@@ -275,7 +275,6 @@
   .status-dropdown-option:hover,.status-dropdown-option[aria-selected="true"]{background:var(--g-50)}
   .status-dropdown-option:disabled{color:var(--g-400);cursor:not-allowed}
   .status-dropdown-option:disabled:hover{background:transparent}
-  .status-dropdown-divider{height:1px;margin:4px 10px;background:var(--border)}
 
   /* ============ AVAILABILITY HISTORY VARIANTS ============ */
   .availability-table-wrap{overflow-x:auto}
@@ -877,7 +876,7 @@ function pageGeneral(){
           const selected = index === availabilityOptionIndex(eff);
           const disabled = availabilityOptionDisabled(option, draft);
           return `<button class="status-dropdown-option" id="gStatusOption${index}" type="button" role="option" data-dd-index="${index}" aria-selected="${selected}" tabindex="${index===gStatusFocus?'0':'-1'}"${disabled?' disabled':''}>
-            <span class="dot ${option.st}"></span>${option.label}</button>${index===1?'<div class="status-dropdown-divider" role="separator"></div>':''}`;
+            <span class="dot ${option.st}"></span>${option.label}</button>`;
         }).join('')}
       </div>` : ''}
     </div>` : `<button class="switch ${draft==='ok'?'on':''}" id="gSw" ${toggleBlocked?'disabled':''}><i></i></button>`;
@@ -1242,7 +1241,7 @@ function dlgRecord(){
       ${statusOpen ? `<div class="status-dropdown-menu" id="fStatusList" role="listbox" aria-label="Availability status">
         ${AVAILABILITY_OPTIONS.map((option, index) => {
           const selected = index === availabilityOptionIndex(s), disabled = availabilityOptionDisabled(option, c.st);
-          return `<button class="status-dropdown-option" id="fStatusOption${index}" type="button" role="option" data-dd-index="${index}" aria-selected="${selected}" tabindex="${index===statusFocus?'0':'-1'}"${disabled?' disabled':''}><span class="dot ${option.st}"></span>${option.label}</button>${index===1?'<div class="status-dropdown-divider" role="separator"></div>':''}`;
+          return `<button class="status-dropdown-option" id="fStatusOption${index}" type="button" role="option" data-dd-index="${index}" aria-selected="${selected}" tabindex="${index===statusFocus?'0':'-1'}"${disabled?' disabled':''}><span class="dot ${option.st}"></span>${option.label}</button>`;
         }).join('')}
       </div>` : ''}
     </div>`;
@@ -1385,7 +1384,10 @@ function dlgEdit(id){
     error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
   }
   function statusControlMarkup(){
-    return `<span class="record-status-badge" aria-label="Current availability status: ${s.st==='ok'?'Available':'Unavailable'}"><span class="dot ${s.st}"></span>${s.st==='ok'?'Available':'Unavailable'}</span>`;
+    const label = availCtl === 'dropdown' && s.st === 'no' && s.reason
+      ? `Unavailable / ${s.reason}`
+      : (s.st === 'ok' ? 'Available' : 'Unavailable');
+    return `<span class="record-status-badge" aria-label="Current availability status: ${label}"><span class="dot ${s.st}"></span>${label}</span>`;
   }
   function paintForm(){
     $('eStatusControl').innerHTML = statusControlMarkup();
