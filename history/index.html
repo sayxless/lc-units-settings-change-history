@@ -721,7 +721,7 @@ function pageAvailability(){
     </div>` : `
     <div class="availability-table-wrap"><table class="availability-table${useCombinedStatus ? ' availability-table--dropdown' : ''}"><thead><tr>
       <th style="width:${availTable === 'period' ? 300 : 290}px"><button class="sort">${availTable === 'period' ? 'From-to' : 'Start from'} ${IC.sort}</button></th>
-      <th style="width:${useCombinedStatus ? 330 : 210}px">Status</th>${useCombinedStatus ? '' : '<th style="width:170px">Unavailable reason</th>'}<th>Notes</th><th style="width:150px">Partner</th><th style="width:140px">User</th><th style="width:52px"></th>
+      <th style="width:${useCombinedStatus ? 330 : 160}px">Status</th>${useCombinedStatus ? '' : '<th style="width:220px">Unavailable reason</th>'}<th>Notes</th><th style="width:150px">Partner</th><th style="width:140px">User</th><th style="width:52px"></th>
     </tr></thead><tbody>${tableBody}</tbody></table></div>`;
 
   return `<h2>Availability</h2>
