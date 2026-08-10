@@ -698,8 +698,8 @@ function pageAvailability(){
     <tr class="${r.id===fresh?'fresh':''}">
       <td>${availTable === 'period' ? `${fmt(r.from)} – ${fmt(r.to)}` : fmt(r.from)}</td>
       <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${esc(statusText(r))}</span></span></td>
-      ${useCombinedStatus ? '' : `<td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' ? '' : esc(r.reason)}</td>`}
-      <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${esc(r.comment)}</td>
+      ${useCombinedStatus ? '' : `<td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' || !r.reason ? '—' : esc(r.reason)}</td>`}
+      <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${r.comment ? esc(r.comment) : '—'}</td>
       <td${!partner(r)?' class="muted"':''}>${partner(r) || '—'}</td>
       <td${r.by==='System'?' class="muted"':''}>${esc(r.by)}</td>
       <td class="act">${action(r)}</td>
@@ -708,7 +708,7 @@ function pageAvailability(){
     <div class="availability-timeline-row ${r.id===fresh?'fresh':''}" role="listitem">
       <div class="timeline-marker" aria-hidden="true"><span class="dot ${r.st}"></span></div>
       <div class="timeline-status"><span class="stat">${esc(combinedStatus(r))}</span><time class="timeline-date" datetime="${r.from}">${fmt(r.from)}</time></div>
-      <div class="timeline-cell timeline-notes${!r.comment?' muted':''}" data-label="Notes">${esc(r.comment)}</div>
+      <div class="timeline-cell timeline-notes${!r.comment?' muted':''}" data-label="Notes">${r.comment ? esc(r.comment) : '—'}</div>
       <div class="timeline-cell timeline-partner${!partner(r)?' muted':''}" data-label="Partner">${partner(r) || '—'}</div>
       <div class="timeline-cell timeline-by${r.by==='System'?' muted':''}" data-label="Changed by">${esc(r.by)}</div>
       <div class="timeline-action">${action(r)}</div>
@@ -721,7 +721,7 @@ function pageAvailability(){
     </div>` : `
     <div class="availability-table-wrap"><table class="availability-table${useCombinedStatus ? ' availability-table--dropdown' : ''}"><thead><tr>
       <th style="width:${availTable === 'period' ? 300 : 290}px"><button class="sort">${availTable === 'period' ? 'From-to' : 'Start from'} ${IC.sort}</button></th>
-      <th style="width:${useCombinedStatus ? 330 : 210}px">Status</th>${useCombinedStatus ? '' : '<th style="width:170px">Reason</th>'}<th>Notes</th><th style="width:150px">Partner</th><th style="width:140px">User</th><th style="width:52px"></th>
+      <th style="width:${useCombinedStatus ? 330 : 210}px">Status</th>${useCombinedStatus ? '' : '<th style="width:170px">Unavailable reason</th>'}<th>Notes</th><th style="width:150px">Partner</th><th style="width:140px">User</th><th style="width:52px"></th>
     </tr></thead><tbody>${tableBody}</tbody></table></div>`;
 
   return `<h2>Availability</h2>
