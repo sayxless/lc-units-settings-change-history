@@ -955,14 +955,14 @@ function pageGeneral(){
         on or off physically.</p></div>
     <div class="fr">
       <div class="swrow">
-        <div style="font-weight:500">${availCtl === 'toggle' ? 'Available for charging' : 'Current status'}</div>
+        <div style="font-weight:500">Set current status</div>
         ${statusControl}
       </div>
       ${gate}
       <div class="adet">
-        <div class="adet-h"><h4>Details</h4><span class="bo-only">Backoffice only</span></div>
+        <div class="adet-h"><h4>Current status details</h4><span class="bo-only">Backoffice only</span></div>
         ${draft==='no' && availCtl !== 'dropdown' ? `
-          <div><label>Reason unavailable <span class="opt">(optional)</span></label>
+          <div><label>Unavailable reason <span class="opt">(optional)</span></label>
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
             </div>` : ''}
