@@ -321,7 +321,7 @@
   /* ---- блок Availability details ---- */
   .adet{display:flex;flex-direction:column;gap:16px;margin-top:16px;
     padding:18px 20px;border-radius:10px;background:var(--g-50)}
-  .adet-h{display:flex;justify-content:flex-start;align-items:center;gap:16px}
+  .adet-h{display:flex;justify-content:space-between;align-items:center;gap:16px}
   .adet-h h4{font-size:14.5px;font-weight:600}
   .adet-h .bo-only{background:#fff}
   .opt{color:var(--text-3);font-weight:400}
@@ -961,6 +961,7 @@ function pageGeneral(){
       ${gate}
       <div class="adet">
         <div class="adet-h"><h4>Current status details</h4><span class="bo-only">Backoffice only</span></div>
+        ${reasonAlert}
         ${draft==='no' && availCtl !== 'dropdown' ? `
           <div><label>Unavailable reason <span class="opt">(optional)</span></label>
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
@@ -977,7 +978,6 @@ function pageGeneral(){
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
         </div></div>
-        ${reasonAlert}
         <div id="gErr"></div>
       </div>
     </div>
