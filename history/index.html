@@ -209,8 +209,11 @@
   .modal-close svg{width:20px;height:20px}
   .record-intro{font-size:14px;line-height:20px;text-wrap:pretty}
   .record-md .b{gap:16px}
-  .record-fields{display:flex;flex-direction:column;gap:24px;padding:16px;border-radius:6px;background:var(--g-50)}
-  .record-md #rzn,.record-md #dates{display:flex;flex-direction:column;gap:24px}
+  .record-fields{display:flex;flex-direction:column;gap:16px;padding:16px;border-radius:6px;background:var(--g-50)}
+  .record-fields-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .record-fields-head h4{font-size:14.5px;font-weight:600}
+  .record-fields-head .bo-only{background:#fff}
+  .record-md #rzn,.record-md #dates{display:flex;flex-direction:column;gap:16px}
   .record-md #rzn:empty{display:none}
   .record-status-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
   .record-status-label{font-size:14px;font-weight:500}
@@ -318,8 +321,8 @@
   .gedit{display:flex;flex-direction:column;gap:14px;margin-top:16px;
     padding:16px;border:1px solid var(--border);border-radius:10px;background:#fcfcfc}
   /* ---- блок Availability details ---- */
-  .adet{display:flex;flex-direction:column;gap:16px;margin-top:16px;
-    padding:18px 20px;border-radius:10px;background:var(--g-50)}
+  .adet{display:flex;flex-direction:column;gap:16px;margin-top:0;
+    padding:16px 20px;border-radius:10px;background:var(--g-50)}
   .adet-h{display:flex;justify-content:space-between;align-items:center;gap:16px}
   .adet-h h4{font-size:14.5px;font-weight:600}
   .adet-h .bo-only{background:#fff}
@@ -334,7 +337,7 @@
   .fhint{display:flex;align-items:flex-start;gap:7px;margin-top:7px;
     font-size:12.5px;color:var(--text-3);line-height:1.45}
   .fhint svg{flex:none;margin-top:1px}
-  .adalert{display:flex;align-items:center;gap:12px;margin-top:16px;padding:16px 18px;border:1px solid var(--border);
+  .adalert{display:flex;align-items:center;gap:12px;margin-top:0;padding:16px 18px;border:1px solid var(--border);
     border-radius:10px;background:#fff;color:var(--text);font-size:14.5px;font-weight:500;line-height:1.45}
   .adalert svg{width:24px;height:24px;flex:none}
   /* сегмент-контрол в строке со статусом — по содержимому, а не на всю ширину */
@@ -459,14 +462,15 @@
   <div class="devhead"><h4>Prototype controls</h4><button class="devclose" id="devClose" title="Свернуть">✕</button></div>
   <div class="devsub">Availability control</div>
   <div class="devnav" id="ctlVar">
-    <button type="button" data-v="toggle">A1 · Toggle</button>
-    <button type="button" data-v="seg" class="on">A2 · Segment control</button>
+    <button type="button" data-v="seg" class="on">A1 · Segment control</button>
+    <button type="button" data-v="toggle">A2 · Toggle</button>
     <button type="button" data-v="dropdown">A3 · Dropdown</button>
+    <button type="button" data-v="dropdown-short">A4 · Dropdown, short labels</button>
   </div>
   <div class="devsub">Availability table</div>
   <div class="devnav" id="tableVar">
-    <button type="button" data-v="start" class="on">B1 · Start from</button>
-    <button type="button" data-v="period">B2 · From-to</button>
+    <button type="button" data-v="period" class="on">B1 · From-to</button>
+    <button type="button" data-v="start">B2 · Start from</button>
     <button type="button" data-v="timeline">B3 · Timeline</button>
   </div>
   <label><input type="checkbox" id="cSession"> Active charging session on Charger 01</label>
@@ -519,6 +523,13 @@ const AVAILABILITY_OPTIONS = [
   {st:'no', reason:'', label:'Unavailable'},
   ...REASONS.map(reason => ({st:'no', reason, label:`Unavailable / ${reason}`})),
 ];
+const AVAILABILITY_OPTIONS_A4 = [
+  {st:'ok', reason:'', label:'Available'},
+  {st:'no', reason:'', label:'Unavailable'},
+  {st:'no', reason:'Down', label:'Unit down'},
+  {st:'no', reason:'On Hold', label:'Unit on hold'},
+  {st:'no', reason:'Planned Maintenance', label:'Planned maintenance'},
+];
 const SESSIONS = [
   {id:'CH-1201', from:'2026-06-10T09:10', to:shift('2026-06-10T10:05')},
   {id:'CH-1202', from:'2026-06-10T12:00', to:shift('2026-06-10T13:20')},
@@ -551,10 +562,17 @@ let page = 'availability';
 /* контрол статуса в блоке Availability: 'toggle' (тумблер) | 'seg' (сегмент-контрол) */
 let availCtl = 'seg';
 /* Представление истории: B1 — начало, B2 — границы периода, B3 — таймлайн. */
-let availTable = 'start';
+let availTable = 'period';
 /* Единый сценарий: смена причины показывается alert-карточкой, Notes всегда видны. */
 const commentMode = 'always';
 let historyOpen = true;
+const isDropdownControl = () => availCtl === 'dropdown' || availCtl === 'dropdown-short';
+const availabilityOptions = () => availCtl === 'dropdown-short' ? AVAILABILITY_OPTIONS_A4 : AVAILABILITY_OPTIONS;
+const availabilityStatusLabel = state => {
+  if(state.st === 'ok') return 'Available';
+  const option = availabilityOptions().find(item => item.st === state.st && item.reason === (state.reason || ''));
+  return option?.label || (state.reason ? `Unavailable / ${state.reason}` : 'Unavailable');
+};
 
 /* =========================== UTILS =========================== */
 const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -586,8 +604,11 @@ function rebuildTimeline(list){
 }
 const cur = () => recs.find(r => r.to === null);
 const label = r => r.st === 'ok' ? 'Available' : (r.reason ? `Unavailable · ${r.reason}` : 'Unavailable');
-const availabilityOptionIndex = state => Math.max(0, AVAILABILITY_OPTIONS.findIndex(option =>
-  option.st === state.st && option.reason === (state.reason || '')));
+const availabilityOptionIndex = state => {
+  const options = availabilityOptions();
+  const match = options.findIndex(option => option.st === state.st && option.reason === (state.reason || ''));
+  return match >= 0 ? match : options.findIndex(option => option.st === 'no' && !option.reason);
+};
 const availabilityOptionDisabled = (option, currentStatus) => option.st !== currentStatus && (
   (option.st === 'no' && sc.session) || (option.st === 'ok' && !sc.fields)
 );
@@ -684,10 +705,8 @@ function withGaps(list){
 
 function pageAvailability(){
   const list = sorted().reverse();
-  const combinedStatus = r => r.st === 'ok'
-    ? 'Available'
-    : (r.reason ? `Unavailable / ${r.reason}` : 'Unavailable');
-  const useCombinedStatus = availCtl === 'dropdown';
+  const combinedStatus = r => availabilityStatusLabel(r);
+  const useCombinedStatus = isDropdownControl();
   const statusText = r => useCombinedStatus || availTable === 'timeline'
     ? combinedStatus(r)
     : (r.st === 'ok' ? 'Available' : 'Unavailable');
@@ -850,8 +869,8 @@ function pageGeneral(){
   const fromAt = changed ? gDraft.from : c.from;
   /* Сменили только причину, статус прежний — поясняем, что это отдельная запись */
   const reasonOnly = changed && gDraft.st === c.st;
-  const reasonAlert = reasonOnly && availCtl !== 'dropdown'
-    ? `<div class="adalert" role="status">${IC.infoSolid}<span>Changing the reason will be saved as a new record</span></div>`
+  const reasonAlert = reasonOnly && !isDropdownControl()
+    ? `<div class="adalert" role="status">${IC.infoSolid}<span>Changing the reason will be saved as a new record history</span></div>`
     : '';
   /* блокируется только переключение статуса; смена reason/comment внутри статуса разрешена всегда */
   const toggleBlocked = draft === 'ok' ? sc.session : !sc.fields;
@@ -860,19 +879,19 @@ function pageGeneral(){
     <u>Go to Live charging</u> to stop it, or wait for it to finish.</div>`;
   if(toggleBlocked && draft==='no') gate = `<div class="gate">To make the unit available, fill in:
     <ul><li><u>Partner</u></li><li><u>Location</u></li><li><u>Individual clients rate</u></li></ul></div>`;
-  const selectedStatusOption = AVAILABILITY_OPTIONS[availabilityOptionIndex(eff)];
+  const selectedStatusOption = availabilityOptions()[availabilityOptionIndex(eff)];
   const statusControl = availCtl === 'seg' ? `
     <div class="seg seg-inline" id="gSeg">
       <button data-v="no" class="${draft==='no'?'on':''}" ${(draft!=='no'&&sc.session)?'disabled':''}><span class="dot no"></span> Unavailable</button>
       <button data-v="ok" class="${draft==='ok'?'on':''}" ${(draft!=='ok'&&!sc.fields)?'disabled':''}><span class="dot ok"></span> Available</button>
-    </div>` : availCtl === 'dropdown' ? `
+    </div>` : isDropdownControl() ? `
     <div class="status-dropdown ${gStatusOpen?'open':''}" id="gStatusDropdown">
       <button class="status-dropdown-trigger" id="gStatusTrigger" type="button" aria-haspopup="listbox" aria-expanded="${gStatusOpen}" aria-controls="gStatusList">
         <span class="status-dropdown-value"><span class="dot ${selectedStatusOption.st}"></span>${selectedStatusOption.label}</span>
         <svg class="status-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       ${gStatusOpen ? `<div class="status-dropdown-menu" id="gStatusList" role="listbox" aria-label="Current status">
-        ${AVAILABILITY_OPTIONS.map((option, index) => {
+        ${availabilityOptions().map((option, index) => {
           const selected = index === availabilityOptionIndex(eff);
           const disabled = availabilityOptionDisabled(option, draft);
           return `<button class="status-dropdown-option" id="gStatusOption${index}" type="button" role="option" data-dd-index="${index}" aria-selected="${selected}" tabindex="${index===gStatusFocus?'0':'-1'}"${disabled?' disabled':''}>
@@ -960,8 +979,7 @@ function pageGeneral(){
       ${gate}
       <div class="adet">
         <div class="adet-h"><h4>Current status details</h4><span class="bo-only">Backoffice only</span></div>
-        ${reasonAlert}
-        ${draft==='no' && availCtl !== 'dropdown' ? `
+        ${draft==='no' && !isDropdownControl() ? `
           <div><label>Unavailable reason <span class="opt">(optional)</span></label>
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
               ${REASONS.map(r=>`<option ${eff.reason===r?'selected':''}>${r}</option>`).join('')}</select>
@@ -973,10 +991,11 @@ function pageGeneral(){
              ${changed ? (gCommentOpen ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
                <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
                : `<button class="add-comment" id="gAddComment" type="button">Add Notes</button>`) : ''}`}
-        <div><label>Start from</label><div class="dtrow">
+        <div><label>Changed at</label><div class="dtrow">
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
         </div></div>
+        ${reasonAlert}
         <div id="gErr"></div>
       </div>
     </div>
@@ -1008,16 +1027,17 @@ function render(){
       const state = gDraft || {st:cur().st, reason:cur().reason||''};
       const focusStatusOption = index => requestAnimationFrame(() => document.getElementById(`gStatusOption${index}`)?.focus());
       const nextStatusOption = (index, step) => {
-        for(let offset = 1; offset <= AVAILABILITY_OPTIONS.length; offset++){
-          const candidate = (index + step * offset + AVAILABILITY_OPTIONS.length) % AVAILABILITY_OPTIONS.length;
-          if(!availabilityOptionDisabled(AVAILABILITY_OPTIONS[candidate], state.st)) return candidate;
+        const options = availabilityOptions();
+        for(let offset = 1; offset <= options.length; offset++){
+          const candidate = (index + step * offset + options.length) % options.length;
+          if(!availabilityOptionDisabled(options[candidate], state.st)) return candidate;
         }
         return index;
       };
       const openStatusDropdown = index => { gStatusOpen = true; gStatusFocus = index; render(); focusStatusOption(index); };
       const closeStatusDropdown = () => { gStatusOpen = false; render(); requestAnimationFrame(() => document.getElementById('gStatusTrigger')?.focus()); };
       const chooseStatusOption = index => {
-        const option = AVAILABILITY_OPTIONS[index];
+        const option = availabilityOptions()[index];
         if(availabilityOptionDisabled(option, state.st)) return;
         gStatusOpen = false;
         gStatusFocus = index;
@@ -1195,8 +1215,8 @@ function dlgRecord(){
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button></header><div class="b">
     <p class="record-intro">You’re about to create an availability record of unit UN-401.</p>
-    <div id="sStatusField"><div class="record-status-row"><span class="record-status-label">Status</span><div id="fStatusControl"></div></div><div id="sStatusErr"></div></div>
-    <div class="record-fields"><div id="rzn"></div><div id="dates"></div></div>
+    <div id="sStatusField"><div class="record-status-row"><span class="record-status-label">Set status</span><div id="fStatusControl"></div></div><div id="sStatusErr"></div></div>
+    <div class="record-fields"><div class="record-fields-head"><h4>Status details</h4><span class="bo-only">Backoffice only</span></div><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Record availability</button></footer>`);
   md.classList.add('record-md');
@@ -1222,9 +1242,10 @@ function dlgRecord(){
   }
   const statusDisabled = target => target !== c.st && ((target === 'no' && sc.session) || (target === 'ok' && !sc.fields));
   const nextStatusOption = (index, step) => {
-    for(let offset = 1; offset <= AVAILABILITY_OPTIONS.length; offset++){
-      const candidate = (index + step * offset + AVAILABILITY_OPTIONS.length) % AVAILABILITY_OPTIONS.length;
-      if(!availabilityOptionDisabled(AVAILABILITY_OPTIONS[candidate], c.st)) return candidate;
+    const options = availabilityOptions();
+    for(let offset = 1; offset <= options.length; offset++){
+      const candidate = (index + step * offset + options.length) % options.length;
+      if(!availabilityOptionDisabled(options[candidate], c.st)) return candidate;
     }
     return index;
   };
@@ -1232,14 +1253,14 @@ function dlgRecord(){
     if(availCtl === 'toggle') return `<button class="switch ${s.st==='ok'?'on':''}" id="fStatusSwitch" type="button" aria-label="Availability status: ${s.st==='ok'?'available':'unavailable'}" aria-pressed="${s.st==='ok'}"${statusDisabled(s.st==='ok'?'no':'ok')?' disabled':''}><i></i></button>`;
     if(availCtl === 'seg') return `<div class="seg" id="sSt" role="group" aria-label="Availability status">
       ${['no','ok'].map(st => `<button type="button" data-v="${st}" class="${s.st===st?'on':''}" aria-pressed="${s.st===st}"${statusDisabled(st)?' disabled':''}><span class="dot ${st}"></span> ${st==='ok'?'Available':'Unavailable'}</button>`).join('')}</div>`;
-    const selected = AVAILABILITY_OPTIONS[availabilityOptionIndex(s)];
+    const selected = availabilityOptions()[availabilityOptionIndex(s)];
     return `<div class="status-dropdown ${statusOpen?'open':''}" id="fStatusDropdown">
       <button class="status-dropdown-trigger" id="fStatusTrigger" type="button" aria-haspopup="listbox" aria-expanded="${statusOpen}" aria-controls="fStatusList">
         <span class="status-dropdown-value"><span class="dot ${selected.st}"></span>${selected.label}</span>
         <svg class="status-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       ${statusOpen ? `<div class="status-dropdown-menu" id="fStatusList" role="listbox" aria-label="Availability status">
-        ${AVAILABILITY_OPTIONS.map((option, index) => {
+        ${availabilityOptions().map((option, index) => {
           const selected = index === availabilityOptionIndex(s), disabled = availabilityOptionDisabled(option, c.st);
           return `<button class="status-dropdown-option" id="fStatusOption${index}" type="button" role="option" data-dd-index="${index}" aria-selected="${selected}" tabindex="${index===statusFocus?'0':'-1'}"${disabled?' disabled':''}><span class="dot ${option.st}"></span>${option.label}</button>`;
         }).join('')}
@@ -1258,7 +1279,7 @@ function dlgRecord(){
     const focusOption = index => requestAnimationFrame(() => $(`fStatusOption${index}`)?.focus());
     const openDropdown = index => { statusOpen = true; statusFocus = index; paintForm(); focusOption(index); };
     const closeDropdown = () => { statusOpen = false; paintForm(); requestAnimationFrame(() => $('fStatusTrigger')?.focus()); };
-    const choose = index => setStatus(AVAILABILITY_OPTIONS[index]);
+    const choose = index => setStatus(availabilityOptions()[index]);
     trigger.onclick = () => statusOpen ? closeDropdown() : openDropdown(availabilityOptionIndex(s));
     trigger.onkeydown = event => {
       if(event.key === 'ArrowDown' || event.key === 'ArrowUp'){
@@ -1285,17 +1306,17 @@ function dlgRecord(){
   }
   function paintForm(){
     $('fStatusControl').innerHTML = statusControlMarkup();
-    $('rzn').innerHTML = s.st === 'no' && availCtl !== 'dropdown'
+    $('rzn').innerHTML = s.st === 'no' && !isDropdownControl()
       ? `<div id="fReasonField"><label for="fR">Reason unavailable <span class="opt">(optional)</span></label><select class="ctrl" id="fR" aria-describedby="fReasonErr">
           <option value="">Select reason</option>${REASONS.map(r=>`<option ${s.reason===r?'selected':''}>${r}</option>`).join('')}</select><div id="fReasonErr"></div></div>` : '';
     if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
     const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
     const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
-    $('dates').innerHTML = `<div id="fFromField"><label for="fFD">Start from</label><div class="dtrow">
-      <div class="withic">${IC.cal}<input class="ctrl" type="date" id="fFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="fFromErr"></div>
-      <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="fFromErr"></div></div><div id="fFromErr"></div></div>
-      ${(commentMode === 'always' || s.notesOpen) ? `<div><label for="fNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
-        : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}`;
+    $('dates').innerHTML = `${(commentMode === 'always' || s.notesOpen) ? `<div><label for="fNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+        : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}
+      <div id="fFromField"><label for="fFD">Changed at</label><div class="dtrow">
+        <div class="withic">${IC.cal}<input class="ctrl" type="date" id="fFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="fFromErr"></div>
+        <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="fFromErr"></div></div><div id="fFromErr"></div></div>`;
     ['fFD','fFT'].forEach(i => { $(i).onchange = readDates; $(i).oninput = readDates; });
     if($('fNotes')) $('fNotes').oninput = e => { s.comment = e.target.value; upd(); };
     if($('fAddNotes')) $('fAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('fNotes')?.focus()); };
@@ -1321,8 +1342,8 @@ function dlgRecord(){
   function upd(){
     const errors = formErrors();
     const visible = s.showErrors ? errors : {};
-    showFieldError('sStatusField', 'sStatusErr', visible.status || (availCtl === 'dropdown' ? visible.reason : ''));
-    showFieldError('fReasonField', 'fReasonErr', availCtl === 'dropdown' ? '' : visible.reason);
+    showFieldError('sStatusField', 'sStatusErr', visible.status || (isDropdownControl() ? visible.reason : ''));
+    showFieldError('fReasonField', 'fReasonErr', isDropdownControl() ? '' : visible.reason);
     showFieldError('fFromField', 'fFromErr', visible.from);
     return Object.keys(errors).length === 0;
   }
@@ -1353,8 +1374,8 @@ function dlgEdit(id){
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button></header><div class="b">
     <p class="record-intro">You’re about to edit an availability record of unit UN-401.</p>
-    <div class="edit-status" id="eStatusField"><div class="record-status-row"><span class="record-status-label">Status</span><div id="eStatusControl"></div></div><div id="eStatusErr"></div></div>
-    <div class="record-fields"><div id="rzn"></div><div id="dates"></div></div>
+    <div class="edit-status" id="eStatusField"><div class="record-status-row"><span class="record-status-label">Set status</span><div id="eStatusControl"></div></div><div id="eStatusErr"></div></div>
+    <div class="record-fields"><div class="record-fields-head"><h4>Status details</h4><span class="bo-only">Backoffice only</span></div><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Save changes</button></footer>`);
   md.classList.add('record-md');
@@ -1384,23 +1405,21 @@ function dlgEdit(id){
     error.innerHTML = message ? `<div class="field-msg" role="alert">${IC.err}<span>${message}</span></div>` : '';
   }
   function statusControlMarkup(){
-    const label = availCtl === 'dropdown' && s.st === 'no' && s.reason
-      ? `Unavailable / ${s.reason}`
-      : (s.st === 'ok' ? 'Available' : 'Unavailable');
+    const label = isDropdownControl() ? availabilityStatusLabel(s) : (s.st === 'ok' ? 'Available' : 'Unavailable');
     return `<span class="record-status-badge" aria-label="Current availability status: ${label}"><span class="dot ${s.st}"></span>${label}</span>`;
   }
   function paintForm(){
     $('eStatusControl').innerHTML = statusControlMarkup();
-    $('rzn').innerHTML = s.st === 'no' && availCtl !== 'dropdown' ? `<div id="eReasonField"><label for="eReason">Reason unavailable <span class="opt">(optional)</span></label>
+    $('rzn').innerHTML = s.st === 'no' && !isDropdownControl() ? `<div id="eReasonField"><label for="eReason">Reason unavailable <span class="opt">(optional)</span></label>
       <select class="ctrl" id="eReason" aria-describedby="eReasonErr"><option value="">Select reason</option>${REASONS.map(x=>`<option ${s.reason===x?'selected':''}>${x}</option>`).join('')}</select><div id="eReasonErr"></div></div>` : '';
     if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; upd(); };
     const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
     const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
-    $('dates').innerHTML = `<div id="eFromField"><label for="eFD">Start from</label><div class="dtrow">
-      <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="eFromErr"></div>
-      <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="eFromErr"></div></div><div id="eFromErr"></div></div>
-      ${(commentMode === 'always' || s.comment || s.notesOpen) ? `<div><label for="eNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
-        : `<button class="add-comment" id="eAddNotes" type="button">Add Notes</button>`}`;
+    $('dates').innerHTML = `${(commentMode === 'always' || s.comment || s.notesOpen) ? `<div><label for="eNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
+        : `<button class="add-comment" id="eAddNotes" type="button">Add Notes</button>`}
+      <div id="eFromField"><label for="eFD">Changed at</label><div class="dtrow">
+        <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="eFromErr"></div>
+        <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="eFromErr"></div></div><div id="eFromErr"></div></div>`;
     ['eFD','eFT'].forEach(key => { $(key).onchange = readDates; $(key).oninput = readDates; });
     if($('eNotes')) $('eNotes').oninput = e => { s.comment = e.target.value; };
     if($('eAddNotes')) $('eAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('eNotes')?.focus()); };
@@ -1414,8 +1433,8 @@ function dlgEdit(id){
   function upd(){
     const allErrors = errors(), visible = s.showErrors ? allErrors : {};
     showError('eFromField', 'eFromErr', visible.from);
-    showError('eStatusField', 'eStatusErr', availCtl === 'dropdown' ? visible.reason : '');
-    showError('eReasonField', 'eReasonErr', availCtl === 'dropdown' ? '' : visible.reason);
+    showError('eStatusField', 'eStatusErr', isDropdownControl() ? visible.reason : '');
+    showError('eReasonField', 'eReasonErr', isDropdownControl() ? '' : visible.reason);
     return Object.keys(allErrors).length === 0;
   }
   $('x').onclick = close; $('xClose').onclick = close;
