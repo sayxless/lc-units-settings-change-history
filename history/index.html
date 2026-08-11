@@ -568,6 +568,9 @@ const commentMode = 'always';
 let historyOpen = true;
 const isDropdownControl = () => availCtl === 'dropdown' || availCtl === 'dropdown-short';
 const availabilityOptions = () => availCtl === 'dropdown-short' ? AVAILABILITY_OPTIONS_A4 : AVAILABILITY_OPTIONS;
+const statusDetailsTitle = (state, fallback) => availCtl === 'seg'
+  ? `${state.st === 'ok' ? 'Available' : 'Unavailable'} status details`
+  : fallback;
 const availabilityStatusLabel = state => {
   if(state.st === 'ok') return 'Available';
   const option = availabilityOptions().find(item => item.st === state.st && item.reason === (state.reason || ''));
@@ -978,7 +981,7 @@ function pageGeneral(){
       </div>
       ${gate}
       <div class="adet">
-        <div class="adet-h"><h4>Current status details</h4><span class="bo-only">Backoffice only</span></div>
+        <div class="adet-h"><h4>${statusDetailsTitle(eff, 'Current status details')}</h4><span class="bo-only">Backoffice only</span></div>
         ${draft==='no' && !isDropdownControl() ? `
           <div><label>Unavailable reason <span class="opt">(optional)</span></label>
             <select class="ctrl" id="gReason"><option value="">Select reason</option>
@@ -1216,7 +1219,7 @@ function dlgRecord(){
     </button></header><div class="b">
     <p class="record-intro">You’re about to create an availability record of unit UN-401.</p>
     <div id="sStatusField"><div class="record-status-row"><span class="record-status-label">Set status</span><div id="fStatusControl"></div></div><div id="sStatusErr"></div></div>
-    <div class="record-fields"><div class="record-fields-head"><h4>Status details</h4><span class="bo-only">Backoffice only</span></div><div id="rzn"></div><div id="dates"></div></div>
+    <div class="record-fields"><div class="record-fields-head"><h4 id="fDetailsTitle">${statusDetailsTitle(s, 'Status details')}</h4><span class="bo-only">Backoffice only</span></div><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Record availability</button></footer>`);
   md.classList.add('record-md');
@@ -1306,6 +1309,7 @@ function dlgRecord(){
   }
   function paintForm(){
     $('fStatusControl').innerHTML = statusControlMarkup();
+    $('fDetailsTitle').textContent = statusDetailsTitle(s, 'Status details');
     $('rzn').innerHTML = s.st === 'no' && !isDropdownControl()
       ? `<div id="fReasonField"><label for="fR">Reason unavailable <span class="opt">(optional)</span></label><select class="ctrl" id="fR" aria-describedby="fReasonErr">
           <option value="">Select reason</option>${REASONS.map(r=>`<option ${s.reason===r?'selected':''}>${r}</option>`).join('')}</select><div id="fReasonErr"></div></div>` : '';
@@ -1375,7 +1379,7 @@ function dlgEdit(id){
     </button></header><div class="b">
     <p class="record-intro">You’re about to edit an availability record of unit UN-401.</p>
     <div class="edit-status" id="eStatusField"><div class="record-status-row"><span class="record-status-label">Set status</span><div id="eStatusControl"></div></div><div id="eStatusErr"></div></div>
-    <div class="record-fields"><div class="record-fields-head"><h4>Status details</h4><span class="bo-only">Backoffice only</span></div><div id="rzn"></div><div id="dates"></div></div>
+    <div class="record-fields"><div class="record-fields-head"><h4>${statusDetailsTitle(s, 'Status details')}</h4><span class="bo-only">Backoffice only</span></div><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Save changes</button></footer>`);
   md.classList.add('record-md');
