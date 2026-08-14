@@ -153,7 +153,17 @@
   tr.gaprow:hover td{background:var(--g-50)}
   .kb{width:32px;height:32px;border-radius:6px;display:grid;place-items:center;color:var(--text-3);margin-left:auto}
   .kb:hover,.kb.open{background:var(--g-50);color:var(--text-2)}
-  td.act{width:52px;padding-right:0}
+  .kb:disabled{color:var(--g-300);cursor:not-allowed}
+  .kb-wrap{position:relative;display:inline-flex;margin-left:auto}
+  .kb-wrap[data-tooltip]::after{content:attr(data-tooltip);position:absolute;right:0;bottom:calc(100% + 8px);z-index:65;width:max-content;max-width:220px;padding:7px 9px;border-radius:6px;background:var(--text);color:#fff;font-size:12px;font-weight:500;line-height:16px;box-shadow:0 4px 12px rgba(0,0,0,.16);opacity:0;pointer-events:none;transform:translateY(2px);transition:opacity .15s,transform .15s}
+  .kb-wrap[data-tooltip]:hover::after,.kb-wrap[data-tooltip]:focus-within::after{opacity:1;transform:translateY(0)}
+  .usercell{white-space:nowrap}
+  /* Partner-history events are derived records and use the muted system-record treatment. */
+  .availability-table tr.partner-unassigned-record td,
+  .availability-timeline-row.partner-unassigned-record{color:var(--text-3)}
+  td.act{width:52px;padding-right:0;text-align:right}
+  .availability-table td.act>.kb{display:inline-grid;margin-left:0;vertical-align:middle}
+  .availability-table td.act>.kb-wrap{margin-left:0;vertical-align:middle}
   .menu{position:absolute;background:#fff;border:1px solid var(--border);border-radius:10px;
         box-shadow:0 8px 28px rgba(0,0,0,.12);padding:5px;min-width:172px;z-index:60}
   .menu button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:6px;color:var(--text)}
@@ -215,6 +225,13 @@
   .record-fields-head .bo-only{background:#fff}
   .record-md #rzn,.record-md #dates{display:flex;flex-direction:column;gap:16px}
   .record-md #rzn:empty{display:none}
+  .record-md.period-md{width:min(680px,100%)}
+  .period-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 28px minmax(0,1fr) 120px;gap:8px;align-items:center}
+  .period-arrow{display:grid;place-items:center;color:var(--text-2);font-size:26px;line-height:32px}
+  .period-ongoing{grid-column:4 / -1;position:relative;min-height:32px;padding:6px 12px 6px 36px;border:1px solid var(--border);border-radius:var(--r);background:var(--g-50);color:var(--text-3);line-height:20px}
+  .period-ongoing svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--g-400)}
+  .period-hint{display:flex;align-items:flex-start;gap:7px;margin-top:8px;color:var(--text-3);font-size:13px;line-height:20px}
+  .period-hint svg{width:16px;height:16px;flex:none;margin-top:2px}
   .record-status-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
   .record-status-label{font-size:14px;font-weight:500}
   .record-status-row .seg,.record-status-row .status-dropdown{width:229px}
@@ -389,7 +406,7 @@
   .vswitch a.on:hover{background:var(--text)}
   @media(max-width:1000px){.cols{grid-template-columns:1fr}.devwrap{display:none}.vswitch{display:none}.frow{grid-template-columns:1fr;gap:16px}}
   @media(max-width:760px){.availability-timeline{min-width:0;--timeline-content-start:32px}.availability-timeline-head{display:none}.availability-timeline-row{grid-template-columns:24px minmax(0,1fr) 32px;gap:8px;min-height:0;padding:16px 0}.timeline-marker{grid-row:1 / span 4}.timeline-marker::after{bottom:-32px}.timeline-status{grid-column:2}.timeline-notes,.timeline-partner,.timeline-by{grid-column:2;color:var(--text-2);font-size:13px}.timeline-notes:empty,.timeline-partner:empty,.timeline-by:empty{display:none}.timeline-action{grid-column:3;grid-row:1;align-self:start}.timeline-cell[data-label]::before{content:attr(data-label) ': ';color:var(--text-3)}}
-  @media(max-width:560px){.bd{padding:12px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}.record-status-row{align-items:flex-start;flex-direction:column;gap:10px}.record-status-row .seg,.status-dropdown{width:100%}}
+  @media(max-width:560px){.bd{padding:12px}.record-md .b{padding-inline:18px}.record-md header{padding-inline:18px}.record-md footer{padding-inline:18px}.record-md .dtrow{grid-template-columns:minmax(0,1fr) 132px}.record-status-row{align-items:flex-start;flex-direction:column;gap:10px}.record-status-row .seg,.status-dropdown{width:100%}.period-row{grid-template-columns:minmax(0,1fr) 120px}.period-arrow{grid-column:1 / -1;transform:rotate(90deg);margin-block:-4px}.period-row .period-end-date{grid-column:1}.period-row .period-end-time{grid-column:2}.period-ongoing{grid-column:1 / -1}}
 </style>
 </head>
 <body>
@@ -500,6 +517,10 @@ const isoMin = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate
 const realNow = () => isoMin(new Date());
 /* перенос демо-даты в актуальное окно времени */
 const shift = ts => ts == null ? ts : isoMin(new Date(new Date(ts).getTime() + SHIFT));
+const partnerUnassignedPeriod = () => ({
+  from: shift('2026-02-20T10:00'),
+  to: shift('2026-02-20T12:00'),
+});
 /* Сдвиг демо-данных считаем целыми сутками: так сохраняется «круглое»
    время суток (11:00, 9:15), а не съезжает на случайные минуты.
    Если при этом якорь оказался бы в будущем (смотрим прототип рано утром) —
@@ -540,10 +561,13 @@ function seed(){
   SHIFT = computeShift();
   tick();
   UNIT_ADDED = shift(ADDED_AT);
+  const partnerGap = partnerUnassignedPeriod();
   seq = 20;
   recs = [
-    {id:1,  from:shift('2026-01-25T09:52'), to:shift('2026-02-03T11:00'), st:'no', reason:'Unit added', comment:'', by:'System', system:true},
+    {id:1,  from:shift('2026-01-25T09:52'), to:shift('2026-02-03T11:00'), st:'no', reason:'Unit not assigned to partner', comment:'', by:'Nick Smith', system:true},
     {id:2,  from:shift('2026-02-03T11:00'), to:shift('2026-05-20T14:30'), st:'ok', by:'Nick Smith'},
+    {id:12, from:partnerGap.from,                  to:partnerGap.to,                  st:'no', reason:'Unit not assigned to partner', comment:'', by:'Nick Smith', system:true},
+    {id:13, from:partnerGap.to,                    to:shift('2026-05-20T14:30'), st:'no', reason:'', comment:'Unit has been assigned to partner', by:'Nick Smith', system:true, partnerAssignment:true},
     {id:3,  from:shift('2026-05-20T14:30'), to:shift('2026-05-22T09:00'), st:'no', reason:'Down', comment:'Connector 01 overheating', by:'Nick Smith'},
     {id:4,  from:shift('2026-05-22T09:00'), to:shift('2026-05-24T18:00'), st:'ok', by:'Nick Smith'},
     {id:5,  from:shift('2026-05-24T18:00'), to:shift('2026-05-25T12:00'), st:'no', reason:'Planned Maintenance', comment:'Firmware v1.1.0', by:'Anna K.'},
@@ -647,6 +671,8 @@ const IC = {
   sort:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>`,
   chk:`<svg width="15" height="15" viewBox="0 0 24 24" fill="#1dcc6e"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5 5-5.5" fill="none" stroke="#fff" stroke-width="2"/></svg>`,
   dots:`<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>`,
+  user:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.8-3.5 3.2-5.3 6.5-5.3s5.7 1.8 6.5 5.3" stroke-linecap="round"/></svg>`,
+  computer:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="4.5" width="16" height="11" rx="1.5"/><path d="M9 20h6M12 15.5V20" stroke-linecap="round"/></svg>`,
   cal:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
   clk:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
   info:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>`,
@@ -655,6 +681,25 @@ const IC = {
   warn:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2L22 20.5H2L12 3.2z" fill="#f7a916"/><path d="M12 8.2v6.2M12 17.7h.01" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/></svg>`,
   pin:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
 };
+
+/* Конец периода не вводится: его всегда задаёт начало следующей записи.
+   Это сохраняет форму синхронизированной с event-timeline моделью истории. */
+function periodFields({fieldId, dateId, timeId, errorId, from, startDate=dpart(from || ''), startTime=tpart(from || ''), minDate, maxDate, excludeId=null, lockedFrom=false, previewState}){
+  const next = from ? timelineNeighbors(from, excludeId).next : null;
+  const timeMax = startDate === maxDate ? tpart(NOW) : '';
+  const describedBy = `${errorId}${lockedFrom ? ` ${fieldId}LockHint` : ''}`;
+  const endMarkup = !from || next ? `<div class="withic period-end-date">${IC.cal}<input class="ctrl" type="date" value="${next ? dpart(next.from) : ''}" disabled aria-label="Period end date"></div>
+    <div class="withic period-end-time">${IC.clk}<input class="ctrl" type="time" value="${next ? tpart(next.from) : ''}" disabled aria-label="Period end time"></div>`
+    : `<div class="period-ongoing" aria-label="Period end: ongoing">${IC.cal}<span>Ongoing</span></div>`;
+  const timelineHint = !from ? '' : next
+    ? `<div class="period-hint" role="status">${IC.info}<span>On ${fmt(next.from)}, the unit was set &lsquo;${esc(availabilityStatusLabel(next))}&rsquo; by ${esc(next.by)}.</span></div>`
+    : `<div class="period-hint" role="status">${IC.info}<span>Unit will be set as &lsquo;${esc(availabilityStatusLabel(previewState))}&rsquo; for charging.</span></div>`;
+  return `<div id="${fieldId}"><label for="${dateId}">Period</label><div class="period-row">
+    <div class="withic">${IC.cal}<input class="ctrl" type="date" id="${dateId}" value="${startDate}" min="${minDate}" max="${maxDate}" aria-describedby="${describedBy}"${lockedFrom ? ' disabled' : ''}></div>
+    <div class="withic">${IC.clk}<input class="ctrl" type="time" id="${timeId}" value="${startTime}" max="${timeMax}" aria-describedby="${describedBy}"${lockedFrom ? ' disabled' : ''}></div>
+    <span class="period-arrow" aria-hidden="true">&#8594;</span>${endMarkup}
+  </div>${lockedFrom ? `<div class="period-hint" id="${fieldId}LockHint">${IC.info}<span>Set from partner assignment history</span></div>` : ''}${timelineHint}<div id="${errorId}"></div></div>`;
+}
 
 /* =========================== NAV =========================== */
 /* Верхний уровень: General, Operational, History(группа).
@@ -713,25 +758,31 @@ function pageAvailability(){
   const statusText = r => useCombinedStatus || availTable === 'timeline'
     ? combinedStatus(r)
     : (r.st === 'ok' ? 'Available' : 'Unavailable');
-  const partner = r => r === list[0] && r.st === 'no' ? '' : 'Acme Corp';
-  const action = r => r.system ? '' : `<button class="kb" data-k="${r.id}" aria-label="Record actions">${IC.dots}</button>`;
+  const partnerGap = partnerUnassignedPeriod();
+  const partner = r => r.from >= partnerGap.from && r.from < partnerGap.to ? '' : 'Acme Corp';
+  const action = r => r.partnerAssignment
+    ? `<button class="kb" data-k="${r.id}" aria-label="Record actions">${IC.dots}</button>`
+    : r.system
+      ? `<span class="kb-wrap" data-tooltip="${r.reason === 'Unit not assigned to partner' ? 'Record created from partner assignment history and cannot be modified' : 'System records cannot be modified'}"><button class="kb" type="button" disabled aria-label="System record actions unavailable">${IC.dots}</button></span>`
+      : `<button class="kb" data-k="${r.id}" aria-label="Record actions">${IC.dots}</button>`;
+  const user = r => `<span class="usercell">${esc(r.by)}</span>`;
   const tableBody = list.map(r => `
-    <tr class="${r.id===fresh?'fresh':''}">
+    <tr class="${r.id===fresh?'fresh ':''}${r.reason === 'Unit not assigned to partner' ? 'partner-unassigned-record' : ''}">
       <td>${availTable === 'period' ? `${fmt(r.from)} – ${fmt(r.to)}` : fmt(r.from)}</td>
       <td><span class="statuscell"><span class="stat"><span class="dot ${r.st}"></span> ${esc(statusText(r))}</span></span></td>
       ${useCombinedStatus ? '' : `<td${(r.st==='ok'||!r.reason)?' class="muted"':''}>${r.st==='ok' || !r.reason ? '—' : esc(r.reason)}</td>`}
       <td${!r.comment?' class="muted"':' style="color:var(--text-2)"'}>${r.comment ? esc(r.comment) : '—'}</td>
       <td${!partner(r)?' class="muted"':''}>${partner(r) || '—'}</td>
-      <td${r.by==='System'?' class="muted"':''}>${esc(r.by)}</td>
+      <td>${user(r)}</td>
       <td class="act">${action(r)}</td>
     </tr>`).join('');
   const timeline = list.map(r => `
-    <div class="availability-timeline-row ${r.id===fresh?'fresh':''}" role="listitem">
+    <div class="availability-timeline-row ${r.id===fresh?'fresh ':''}${r.reason === 'Unit not assigned to partner' ? 'partner-unassigned-record' : ''}" role="listitem">
       <div class="timeline-marker" aria-hidden="true"><span class="dot ${r.st}"></span></div>
       <div class="timeline-status"><span class="stat">${esc(combinedStatus(r))}</span><time class="timeline-date" datetime="${r.from}">${fmt(r.from)}</time></div>
       <div class="timeline-cell timeline-notes${!r.comment?' muted':''}" data-label="Notes">${r.comment ? esc(r.comment) : '—'}</div>
       <div class="timeline-cell timeline-partner${!partner(r)?' muted':''}" data-label="Partner">${partner(r) || '—'}</div>
-      <div class="timeline-cell timeline-by${r.by==='System'?' muted':''}" data-label="Changed by">${esc(r.by)}</div>
+      <div class="timeline-cell timeline-by" data-label="Changed by">${user(r)}</div>
       <div class="timeline-action">${action(r)}</div>
     </div>`).join('');
 
@@ -742,7 +793,7 @@ function pageAvailability(){
     </div>` : `
     <div class="availability-table-wrap"><table class="availability-table${useCombinedStatus ? ' availability-table--dropdown' : ''}"><thead><tr>
       <th style="width:${availTable === 'period' ? 300 : 290}px"><button class="sort">${availTable === 'period' ? 'From-to' : 'Start from'} ${IC.sort}</button></th>
-      <th style="width:${useCombinedStatus ? 330 : 160}px">Status</th>${useCombinedStatus ? '' : '<th style="width:220px">Unavailable reason</th>'}<th>Notes</th><th style="width:150px">Partner</th><th style="width:140px">User</th><th style="width:52px"></th>
+      <th style="width:${useCombinedStatus ? 330 : 160}px">Status</th>${useCombinedStatus ? '' : '<th style="width:220px">Unavailable reason</th>'}<th>Notes</th><th style="width:150px">Partner</th><th style="width:140px">Changed by</th><th style="width:52px"></th>
     </tr></thead><tbody>${tableBody}</tbody></table></div>`;
 
   return `<h2>Availability</h2>
@@ -760,7 +811,8 @@ function kebab(e, id){
   btn.classList.add('open');
   const m = document.createElement('div'); m.className = 'menu';
   m.style.top = (r.bottom + scrollY + 6) + 'px'; m.style.left = (r.right + scrollX - 172) + 'px';
-  m.innerHTML = `<button data-a="e">${IC.pen} Edit</button><button class="q" data-a="d">${IC.bin} Delete record</button>`;
+  const record = recs.find(item => item.id === id);
+  m.innerHTML = `<button data-a="e">${IC.pen} Edit</button>${record?.partnerAssignment ? '' : `<button class="q" data-a="d">${IC.bin} Delete record</button>`}`;
   document.body.appendChild(m);
   m.querySelector('[data-a=e]').onclick = () => { m.remove(); dlgEdit(id); };
   const del = m.querySelector('[data-a=d]'); if(del) del.onclick = () => { m.remove(); dlgDel(id); };
@@ -770,16 +822,19 @@ function kebab(e, id){
 
 /* =========================== OTHER PAGES =========================== */
 function pagePartners(){
+  const partnerGap = partnerUnassignedPeriod();
   const d = [
-    {from:shift('2025-07-01T12:30'), to:null,               name:'Acme Corp', now:true,  charges:'2,000', ch:'Jul 2, 2025, 6:40 – Jul 28, 2025, 10:05'},
+    {from:partnerGap.to,              to:null,               name:'Acme Corp', now:true,  charges:'2,000', ch:'Jul 2, 2025, 6:40 – Jul 28, 2025, 10:05'},
+    {from:partnerGap.from,            to:partnerGap.to,      name:'Not assigned', unassigned:true, now:false, charges:'—', ch:'—'},
+    {from:shift('2025-07-01T12:30'), to:partnerGap.from,    name:'Acme Corp', now:false, charges:'2,000', ch:'Jul 2, 2025, 6:40 – Jul 28, 2025, 10:05'},
     {from:shift('2024-05-01T09:00'), to:shift('2024-06-15T00:00'), name:'Acme Corp', now:false, charges:'200',   ch:'May 2, 2025, 7:45 – Jun 14, 2025, 23:10'},
     {from:shift('2024-04-15T00:00'), to:shift('2024-04-30T23:30'), name:'L-Charge',  now:false, charges:'1,000', ch:'Apr 15, 2025, 0:30 – Apr 29, 2025, 22:17'},
     {from:shift('2024-03-01T00:00'), to:shift('2024-03-31T10:00'), name:'L-Charge',  now:false, charges:'1,000', ch:'Mar 1, 2025, 19:23 – Mar 31, 2025, 20:38'},
     {from:shift('2024-01-01T00:00'), to:shift('2024-01-31T23:59'), name:'L-Charge',  now:false, charges:'1,000', ch:'Jan 1, 2025, 2:17 – Jan 28, 2025, 9:47'},
   ];
-  const body = withGaps(d).filter(r => !r.gap).map(r => `<tr>${dcCell(r.from, r.to)}
-        <td>${r.name}${r.now?`<span class="nowtag">${IC.chk} Assigned now</span>`:''}</td>
-        <td>${r.charges}</td><td>${r.ch}</td>
+  const body = withGaps(d).filter(r => !r.gap).map(r => `<tr${r.unassigned?' class="gaprow"':''}>${dcCell(r.from, r.to)}
+        <td${r.unassigned?' class="muted"':''}>${r.name}${r.now?`<span class="nowtag">${IC.chk} Assigned now</span>`:''}</td>
+        <td${r.unassigned?' class="muted"':''}>${r.charges}</td><td${r.unassigned?' class="muted"':''}>${r.ch}</td>
         <td class="act"><button class="kb kbd">${IC.dots}</button></td></tr>`).join('');
 
   return `<h2>Partner assignments</h2><div class="lead">Manage unit assignments to partners.</div>
@@ -1212,7 +1267,7 @@ function gSaveDraft(){
 function dlgRecord(){
   tick();
   const c = cur();
-  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', notesOpen:false, from:NOW, showErrors:false};
+  const s = {st:c.st === 'ok' ? 'no' : 'ok', reason:'', comment:'', notesOpen:false, from:'', startDate:'', startTime:'', showErrors:false};
   open(`<header><h3 id="dialogTitle">Record availability</h3>
     <button class="modal-close" id="xClose" type="button" aria-label="Close record availability dialog" data-autofocus>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1222,7 +1277,7 @@ function dlgRecord(){
     <div class="record-fields"><div class="record-fields-head"><h4 id="fDetailsTitle">${statusDetailsTitle(s, 'Status details')}</h4><span class="bo-only">Backoffice only</span></div><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Record availability</button></footer>`);
-  md.classList.add('record-md');
+  md.classList.add('record-md', 'period-md');
   const $ = i => document.getElementById(i);
   let statusOpen = false, statusFocus = 0;
 
@@ -1314,13 +1369,9 @@ function dlgRecord(){
       ? `<div id="fReasonField"><label for="fR">Reason unavailable <span class="opt">(optional)</span></label><select class="ctrl" id="fR" aria-describedby="fReasonErr">
           <option value="">Select reason</option>${REASONS.map(r=>`<option ${s.reason===r?'selected':''}>${r}</option>`).join('')}</select><div id="fReasonErr"></div></div>` : '';
     if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
-    const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
-    const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
     $('dates').innerHTML = `${(commentMode === 'always' || s.notesOpen) ? `<div><label for="fNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}
-      <div id="fFromField"><label for="fFD">Changed at</label><div class="dtrow">
-        <div class="withic">${IC.cal}<input class="ctrl" type="date" id="fFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="fFromErr"></div>
-        <div class="withic">${IC.clk}<input class="ctrl" type="time" id="fFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="fFromErr"></div></div><div id="fFromErr"></div></div>`;
+      ${periodFields({fieldId:'fFromField', dateId:'fFD', timeId:'fFT', errorId:'fFromErr', from:s.from, startDate:s.startDate, startTime:s.startTime, minDate:dpart(UNIT_ADDED), maxDate:dpart(NOW), previewState:s})}`;
     ['fFD','fFT'].forEach(i => { $(i).onchange = readDates; $(i).oninput = readDates; });
     if($('fNotes')) $('fNotes').oninput = e => { s.comment = e.target.value; upd(); };
     if($('fAddNotes')) $('fAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('fNotes')?.focus()); };
@@ -1328,13 +1379,10 @@ function dlgRecord(){
     upd();
   }
   function readDates(){
-    s.from = join($('fFD').value, $('fFT').value);
-    syncModalTimeLimits();
-    upd();
-  }
-  function syncModalTimeLimits(){
-    const maxDate = dpart(NOW);
-    $('fFT').max = $('fFD').value === maxDate ? tpart(NOW) : '';
+    s.startDate = $('fFD').value;
+    s.startTime = $('fFT').value;
+    s.from = join(s.startDate, s.startTime);
+    paintForm();
   }
   function showFieldError(fieldId, errorId, message){
     const field = $(fieldId), error = $(errorId);
@@ -1372,7 +1420,8 @@ function dlgRecord(){
 function dlgEdit(id){
   const list = sorted(), i = list.findIndex(r => r.id === id);
   const r = list[i], previousRecord = list[i-1], nextRecord = list[i+1];
-  const s = {st:r.st, reason:r.reason||'', comment:r.comment||'', notesOpen:false, from:r.from, showErrors:false};
+  const lockedFrom = Boolean(r.partnerAssignment);
+  const s = {st:r.st, reason:r.reason||'', comment:r.comment||'', notesOpen:false, from:r.from, startDate:dpart(r.from), startTime:tpart(r.from), showErrors:false};
   open(`<header><h3 id="dialogTitle">Edit availability record</h3>
     <button class="modal-close" id="xClose" type="button" aria-label="Close edit availability dialog" data-autofocus>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1382,12 +1431,8 @@ function dlgEdit(id){
     <div class="record-fields"><div class="record-fields-head"><h4>${statusDetailsTitle(s, 'Status details')}</h4><span class="bo-only">Backoffice only</span></div><div id="rzn"></div><div id="dates"></div></div>
   </div><footer><button class="btn btn-g" id="x" type="button">Cancel</button>
     <button class="btn btn-p" id="ok" type="button">Save changes</button></footer>`);
-  md.classList.add('record-md');
+  md.classList.add('record-md', 'period-md');
   const $ = i2 => document.getElementById(i2);
-  function syncTimeLimits(){
-    const maxDate = dpart(NOW);
-    $('eFT').max = $('eFD').value === maxDate ? tpart(NOW) : '';
-  }
   function errors(){
     const out = {};
     if(!s.from) out.from = 'Enter a start date and time.';
@@ -1414,31 +1459,29 @@ function dlgEdit(id){
   }
   function paintForm(){
     $('eStatusControl').innerHTML = statusControlMarkup();
-    $('rzn').innerHTML = s.st === 'no' && !isDropdownControl() ? `<div id="eReasonField"><label for="eReason">Reason unavailable <span class="opt">(optional)</span></label>
+    const showReasonEditor = s.st === 'no' && (!isDropdownControl() || lockedFrom);
+    $('rzn').innerHTML = showReasonEditor ? `<div id="eReasonField"><label for="eReason">Unavailable reason <span class="opt">(optional)</span></label>
       <select class="ctrl" id="eReason" aria-describedby="eReasonErr"><option value="">Select reason</option>${REASONS.map(x=>`<option ${s.reason===x?'selected':''}>${x}</option>`).join('')}</select><div id="eReasonErr"></div></div>` : '';
-    if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; upd(); };
-    const minDate = dpart(UNIT_ADDED), maxDate = dpart(NOW);
-    const fromTimeMax = dpart(s.from) === maxDate ? tpart(NOW) : '';
+    if($('eReason')) $('eReason').onchange = e => { s.reason = e.target.value; paintForm(); };
     $('dates').innerHTML = `${(commentMode === 'always' || s.comment || s.notesOpen) ? `<div><label for="eNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="eNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="eAddNotes" type="button">Add Notes</button>`}
-      <div id="eFromField"><label for="eFD">Changed at</label><div class="dtrow">
-        <div class="withic">${IC.cal}<input class="ctrl" type="date" id="eFD" value="${dpart(s.from)}" min="${minDate}" max="${maxDate}" aria-describedby="eFromErr"></div>
-        <div class="withic">${IC.clk}<input class="ctrl" type="time" id="eFT" value="${tpart(s.from)}" max="${fromTimeMax}" aria-describedby="eFromErr"></div></div><div id="eFromErr"></div></div>`;
+      ${periodFields({fieldId:'eFromField', dateId:'eFD', timeId:'eFT', errorId:'eFromErr', from:s.from, startDate:s.startDate, startTime:s.startTime, minDate:dpart(UNIT_ADDED), maxDate:dpart(NOW), excludeId:id, lockedFrom, previewState:s})}`;
     ['eFD','eFT'].forEach(key => { $(key).onchange = readDates; $(key).oninput = readDates; });
     if($('eNotes')) $('eNotes').oninput = e => { s.comment = e.target.value; };
     if($('eAddNotes')) $('eAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('eNotes')?.focus()); };
-    syncTimeLimits();
     upd();
   }
   function readDates(){
-    s.from = join($('eFD').value, $('eFT').value);
-    syncTimeLimits(); upd();
+    s.startDate = $('eFD').value;
+    s.startTime = $('eFT').value;
+    s.from = join(s.startDate, s.startTime);
+    paintForm();
   }
   function upd(){
     const allErrors = errors(), visible = s.showErrors ? allErrors : {};
     showError('eFromField', 'eFromErr', visible.from);
-    showError('eStatusField', 'eStatusErr', isDropdownControl() ? visible.reason : '');
-    showError('eReasonField', 'eReasonErr', isDropdownControl() ? '' : visible.reason);
+    showError('eStatusField', 'eStatusErr', isDropdownControl() && !lockedFrom ? visible.reason : '');
+    showError('eReasonField', 'eReasonErr', isDropdownControl() && !lockedFrom ? '' : visible.reason);
     return Object.keys(allErrors).length === 0;
   }
   $('x').onclick = close; $('xClose').onclick = close;
