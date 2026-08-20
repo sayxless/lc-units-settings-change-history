@@ -156,6 +156,7 @@
   .kb:disabled{color:var(--g-300);cursor:not-allowed}
   .kb-wrap{position:relative;display:inline-flex;margin-left:auto}
   .kb-wrap[data-tooltip]::after{content:attr(data-tooltip);position:absolute;right:0;bottom:calc(100% + 8px);z-index:65;width:max-content;max-width:220px;padding:7px 9px;border-radius:6px;background:var(--text);color:#fff;font-size:12px;font-weight:500;line-height:16px;box-shadow:0 4px 12px rgba(0,0,0,.16);opacity:0;pointer-events:none;transform:translateY(2px);transition:opacity .15s,transform .15s}
+  .kb-wrap[data-tooltip*="partner assignment"]::after{width:290px;max-width:calc(100vw - 24px)}
   .kb-wrap[data-tooltip]:hover::after,.kb-wrap[data-tooltip]:focus-within::after{opacity:1;transform:translateY(0)}
   .usercell{white-space:nowrap}
   /* Partner-history events are derived records and use the muted system-record treatment. */
@@ -232,6 +233,8 @@
   .period-ongoing svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--g-400)}
   .period-hint{display:flex;align-items:flex-start;gap:7px;margin-top:8px;color:var(--text-3);font-size:13px;line-height:20px}
   .period-hint svg{width:16px;height:16px;flex:none;margin-top:2px}
+  .period-current-alert{display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--r);background:#fff;color:var(--text);font-size:14px;line-height:20px}
+  .period-current-alert svg{width:20px;height:20px;flex:none;margin-top:1px}
   .record-status-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
   .record-status-label{font-size:14px;font-weight:500}
   .record-status-row .seg,.record-status-row .status-dropdown{width:229px}
@@ -684,7 +687,7 @@ const IC = {
 
 /* Конец периода не вводится: его всегда задаёт начало следующей записи.
    Это сохраняет форму синхронизированной с event-timeline моделью истории. */
-function periodFields({fieldId, dateId, timeId, errorId, from, startDate=dpart(from || ''), startTime=tpart(from || ''), minDate, maxDate, excludeId=null, lockedFrom=false, previewState}){
+function periodFields({fieldId, dateId, timeId, errorId, from, startDate=dpart(from || ''), startTime=tpart(from || ''), minDate, maxDate, excludeId=null, lockedFrom=false, previewState, isCreate=false}){
   const next = from ? timelineNeighbors(from, excludeId).next : null;
   const timeMax = startDate === maxDate ? tpart(NOW) : '';
   const describedBy = `${errorId}${lockedFrom ? ` ${fieldId}LockHint` : ''}`;
@@ -692,8 +695,10 @@ function periodFields({fieldId, dateId, timeId, errorId, from, startDate=dpart(f
     <div class="withic period-end-time">${IC.clk}<input class="ctrl" type="time" value="${next ? tpart(next.from) : ''}" disabled aria-label="Period end time"></div>`
     : `<div class="period-ongoing" aria-label="Period end: ongoing">${IC.cal}<span>Ongoing</span></div>`;
   const timelineHint = !from ? '' : next
-    ? `<div class="period-hint" role="status">${IC.info}<span>On ${fmt(next.from)}, the unit was set &lsquo;${esc(availabilityStatusLabel(next))}&rsquo; by ${esc(next.by)}.</span></div>`
-    : `<div class="period-hint" role="status">${IC.info}<span>Unit will be set as &lsquo;${esc(availabilityStatusLabel(previewState))}&rsquo; for charging.</span></div>`;
+    ? `<div class="period-hint" role="status">${IC.info}<span>End date is set automatically from the start of the next record.</span></div>`
+    : isCreate
+      ? `<div class="period-current-alert" role="status">${IC.infoSolid}<span>Since this record is newer than the last one, it will set the unit's status as current.</span></div>`
+      : `<div class="period-hint" role="status">${IC.info}<span>Unit will be set as &lsquo;${esc(availabilityStatusLabel(previewState))}&rsquo; for charging.</span></div>`;
   return `<div id="${fieldId}"><label for="${dateId}">Period</label><div class="period-row">
     <div class="withic">${IC.cal}<input class="ctrl" type="date" id="${dateId}" value="${startDate}" min="${minDate}" max="${maxDate}" aria-describedby="${describedBy}"${lockedFrom ? ' disabled' : ''}></div>
     <div class="withic">${IC.clk}<input class="ctrl" type="time" id="${timeId}" value="${startTime}" max="${timeMax}" aria-describedby="${describedBy}"${lockedFrom ? ' disabled' : ''}></div>
@@ -1371,7 +1376,7 @@ function dlgRecord(){
     if($('fR')) $('fR').onchange = e => { s.reason = e.target.value; upd(); };
     $('dates').innerHTML = `${(commentMode === 'always' || s.notesOpen) ? `<div><label for="fNotes">Notes <span class="opt">(optional)</span></label><textarea class="ctrl" id="fNotes" placeholder="Add note">${esc(s.comment)}</textarea></div>`
         : `<button class="add-comment" id="fAddNotes" type="button">Add Notes</button>`}
-      ${periodFields({fieldId:'fFromField', dateId:'fFD', timeId:'fFT', errorId:'fFromErr', from:s.from, startDate:s.startDate, startTime:s.startTime, minDate:dpart(UNIT_ADDED), maxDate:dpart(NOW), previewState:s})}`;
+      ${periodFields({fieldId:'fFromField', dateId:'fFD', timeId:'fFT', errorId:'fFromErr', from:s.from, startDate:s.startDate, startTime:s.startTime, minDate:dpart(UNIT_ADDED), maxDate:dpart(NOW), previewState:s, isCreate:true})}`;
     ['fFD','fFT'].forEach(i => { $(i).onchange = readDates; $(i).oninput = readDates; });
     if($('fNotes')) $('fNotes').oninput = e => { s.comment = e.target.value; upd(); };
     if($('fAddNotes')) $('fAddNotes').onclick = () => { s.notesOpen = true; paintForm(); requestAnimationFrame(() => $('fNotes')?.focus()); };
