@@ -38,7 +38,7 @@
           display:grid;place-items:center;font-size:11px;font-weight:600}
 
   /* ============ SUB HEADER ============ */
-  .page{padding:18px 24px 80px}
+  .page{padding:18px 24px 120px}
   .pager{display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:13px}
   .sq{width:32px;height:32px;border:1px solid var(--border);border-radius:var(--r);display:grid;place-items:center;color:var(--text-2)}
   .sq:hover{background:var(--g-50)}
@@ -360,6 +360,10 @@
   .adalert{display:flex;align-items:center;gap:12px;margin-top:0;padding:16px 18px;border:1px solid var(--border);
     border-radius:10px;background:#fff;color:var(--text);font-size:14.5px;font-weight:500;line-height:1.45}
   .adalert svg{width:24px;height:24px;flex:none}
+  /* C2: предупреждение о новой history record соответствует alert-компоненту из макета. */
+  .adalert.c2-record-alert{align-items:flex-start;gap:8px;padding:12px 16px;border-color:rgba(0,0,0,.1);
+    border-radius:8px;background:#fcf7ed;font-size:14px;font-weight:400;line-height:20px}
+  .adalert.c2-record-alert svg{margin-top:1px}
   /* сегмент-контрол в строке со статусом — по содержимому, а не на всю ширину */
   .seg-inline{flex:none}
   .seg-inline button{flex:none;padding:7px 14px}
@@ -487,6 +491,11 @@
     <button type="button" data-v="dropdown">A3 · Dropdown</button>
     <button type="button" data-v="dropdown-short">A4 · Dropdown, short labels</button>
   </div>
+  <div class="devsub">General status details</div>
+  <div class="devnav" id="generalDetailVar">
+    <button type="button" data-v="locked" class="on">C1 · Locked until status changes</button>
+    <button type="button" data-v="always">C2 · Always editable</button>
+  </div>
   <div class="devsub">Availability table</div>
   <div class="devnav" id="tableVar">
     <button type="button" data-v="period" class="on">B1 · From-to</button>
@@ -588,6 +597,8 @@ const sc = {session:false, fields:true};
 let page = 'availability';
 /* контрол статуса в блоке Availability: 'toggle' (тумблер) | 'seg' (сегмент-контрол) */
 let availCtl = 'seg';
+/* Вариант General: C1 блокирует Notes/Changed at без смены состояния, C2 — нет. */
+let generalDetailMode = 'locked';
 /* Представление истории: B1 — начало, B2 — границы периода, B3 — таймлайн. */
 let availTable = 'period';
 /* Единый сценарий: смена причины показывается alert-карточкой, Notes всегда видны. */
@@ -922,18 +933,17 @@ function pageOperational(){
 function pageGeneral(){
   const c = cur();
   /* eff — состояние, которое показываем в полях: черновик, если он есть, иначе текущая запись */
-  const eff = gDraft || {st:c.st, reason:c.reason||'', comment:c.comment||'', from:NOW};
+  const eff = gDraft || {st:c.st, reason:c.reason||'', comment:c.comment||'', from:c.from};
   const draft = eff.st;
-  const changed = gDraft ? gChanged(c, gDraft) : false;
-  /* Set from доступен, только когда есть новое изменение для сохранения. */
-  const fieldDis = changed ? '' : ' disabled';
-  /* Set from: без изменений показывает, когда установили текущий статус;
-     при изменении — текущий момент. */
-  const fromAt = changed ? gDraft.from : c.from;
-  /* Сменили только причину, статус прежний — поясняем, что это отдельная запись */
-  const reasonOnly = changed && gDraft.st === c.st;
-  const reasonAlert = reasonOnly && !isDropdownControl()
-    ? `<div class="adalert" role="status">${IC.infoSolid}<span>Changing the reason will be saved as a new record history</span></div>`
+  const recordChanged = gDraft ? gChanged(c, gDraft) : false;
+  const detailChanged = gDraft ? gDetailsChanged(c, gDraft) : false;
+  const hasChanges = recordChanged || detailChanged;
+  /* В C2 заметки и Changed at можно менять и без смены статуса. */
+  const fieldDis = generalDetailMode === 'always' || recordChanged ? '' : ' disabled';
+  const fromAt = gDraft ? gDraft.from : c.from;
+  /* Смена статуса или причины всегда создаёт новую запись истории. */
+  const recordAlert = recordChanged
+    ? `<div class="adalert${generalDetailMode === 'always' ? ' c2-record-alert' : ''}" role="status">${generalDetailMode === 'always' ? IC.warn : IC.infoSolid}<span>Changes will be saved as a new record history</span></div>`
     : '';
   /* блокируется только переключение статуса; смена reason/comment внутри статуса разрешена всегда */
   const toggleBlocked = draft === 'ok' ? sc.session : !sc.fields;
@@ -1049,7 +1059,7 @@ function pageGeneral(){
             </div>` : ''}
         ${commentMode === 'always'
           ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
-              <textarea class="ctrl" id="gComment" placeholder="Add note"${changed?'':' disabled'}>${esc(eff.comment)}</textarea></div>`
+              <textarea class="ctrl" id="gComment" placeholder="Add note"${fieldDis}>${esc(eff.comment)}</textarea></div>`
           : `${!changed && eff.comment ? `<div><label for="gSavedComment">Notes</label><textarea class="ctrl" id="gSavedComment" disabled>${esc(eff.comment)}</textarea></div>` : ''}
              ${changed ? (gCommentOpen ? `<div><label for="gComment">Notes <span class="opt">(optional)</span></label>
                <textarea class="ctrl" id="gComment" placeholder="Add note">${esc(eff.comment)}</textarea></div>`
@@ -1058,12 +1068,12 @@ function pageGeneral(){
           <div class="withic">${IC.cal}<input class="ctrl" type="date" id="gFromD" value="${dpart(fromAt)}" min="${dpart(c.from)}" max="${dpart(NOW)}"${fieldDis}></div>
           <div class="withic">${IC.clk}<input class="ctrl" type="time" id="gFromT" value="${tpart(fromAt)}" max="${dpart(fromAt)===dpart(NOW)?tpart(NOW):''}"${fieldDis}></div>
         </div></div>
-        ${reasonAlert}
+        ${recordAlert}
         <div id="gErr"></div>
       </div>
     </div>
   </div>
-  ${changed ? `<div class="island">
+  ${hasChanges ? `<div class="island">
       <span class="island-msg"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg> You have unsaved changes</span>
       <span class="island-acts"><button class="btn btn-g" id="gResetBtn">Reset</button><button class="btn btn-p" id="gSave">Save changes</button></span>
     </div>` : ''}`;
@@ -1142,9 +1152,9 @@ function render(){
     if(ac) ac.onclick = () => { gCommentOpen = true; render(); requestAnimationFrame(() => document.getElementById('gComment')?.focus()); };
     const fd = document.getElementById('gFromD'), ft = document.getElementById('gFromT');
     const syncGeneralTimeLimit = () => { if(fd && ft) ft.max = fd.value === dpart(NOW) ? tpart(NOW) : ''; };
-    const readFrom = () => { if(gDraft) gDraft.from = join(fd.value, ft.value); syncGeneralTimeLimit(); };
-    if(fd){ fd.onchange = readFrom; fd.oninput = readFrom; }
-    if(ft){ ft.onchange = readFrom; ft.oninput = readFrom; }
+    const readFrom = () => { syncGeneralTimeLimit(); gSetChangedAt(join(fd.value, ft.value)); };
+    if(fd){ fd.onchange = readFrom; fd.oninput = syncGeneralTimeLimit; }
+    if(ft){ ft.onchange = readFrom; }
     syncGeneralTimeLimit();
     const sv = document.getElementById('gSave'); if(sv) sv.onclick = gSaveDraft;
     const rb = document.getElementById('gResetBtn'); if(rb) rb.onclick = gResetDraft;
@@ -1203,24 +1213,27 @@ const dtf = (l,id,d,t,h) => `<div><label>${l}</label><div class="dtrow">
   ${h?`<div class="hint">${h}</div>`:''}</div>`;
 
 /* ===== General: inline-редактирование статуса + остров сохранения ===== */
-let gDraft = null, gTouched = false, gCommentOpen = false, gStatusOpen = false, gStatusFocus = 0, gMemo = {cm:{}, rs:{}};
+let gDraft = null, gTouched = false, gFromTouched = false, gCommentOpen = false, gStatusOpen = false, gStatusFocus = 0, gMemo = {cm:{}, rs:{}};
 /* ключ состояния: комментарий привязан к паре «статус + причина» */
 const stateKey = r => r.st === 'no' ? `no|${r.reason||''}` : 'ok';
-function gClear(){ gDraft = null; gTouched = false; gCommentOpen = false; gStatusOpen = false; gStatusFocus = 0; gMemo = {cm:{}, rs:{}}; }
-/* Записать можно только смену статуса или причины: два одинаковых статуса
-   подряд не допускаются, разный комментарий их не различает. */
+function gClear(){ gDraft = null; gTouched = false; gFromTouched = false; gCommentOpen = false; gStatusOpen = false; gStatusFocus = 0; gMemo = {cm:{}, rs:{}}; }
+const gCurrentDraft = c => ({st:c.st, reason:c.reason||'', comment:c.comment||'', from:c.from});
+/* Новый history record нужен только при смене статуса или причины. */
 function gChanged(c, d){
   return d.st !== c.st || (d.st === 'no' && (d.reason||'') !== (c.reason||''));
 }
-/* Любое изменение полей формирует черновик. Записываемым его делает только
-   смена статуса или причины (см. gChanged). */
+const gDetailsChanged = (c, d) => (d.comment||'') !== (c.comment||'') || d.from !== c.from;
+/* Любое изменение полей формирует черновик. В C2 Notes и Changed at можно
+   сохранить в текущей записи, а статус/причина создают отдельную историю. */
 function gApply(patch){
   const c = cur();
-  const base = gDraft || {st:c.st, reason:c.reason||'', comment:c.comment||'', from:NOW};
+  const base = gDraft || gCurrentDraft(c);
   const next = {...base, ...patch};
   const stChanged = 'st' in patch && patch.st !== base.st;
   const rsChanged = 'reason' in patch && patch.reason !== base.reason;
   if(stChanged || rsChanged){
+    /* Новая история по умолчанию начинается сейчас; вручную выбранное время сохраняем. */
+    if(!gChanged(c, base) && !gFromTouched) next.from = NOW;
     gCommentOpen = false;
     /* Комментарий принадлежит паре «статус + причина», причина — статусу.
        Уходя из состояния, запоминаем оба; возвращаясь — достаём обратно,
@@ -1232,9 +1245,17 @@ function gApply(patch){
     next.comment = gMemo.cm[stateKey(next)] ?? '';
   }
   if(next.st === 'ok') next.reason = '';        // у available нет причины
+  if(!gChanged(c, next) && (stChanged || rsChanged) && !gFromTouched) next.from = c.from;
   next.comment = next.comment || '';
   gTouched = true;
   gDraft = next;
+  render();
+}
+function gSetChangedAt(from){
+  const c = cur();
+  gFromTouched = true;
+  gDraft = {...(gDraft || gCurrentDraft(c)), from};
+  gTouched = true;
   render();
 }
 function gStartToggle(){
@@ -1248,22 +1269,33 @@ function commitStatus(d){
   tick();
   const c = cur();
   const statusChanged = d.st !== c.st;
+  if(!d.from) return 'Enter a date and time.';
   if(d.from > NOW) return 'The date can’t be in the future.';
-  if(d.from < c.from) return `Roll back no further than ${fmt(c.from)} — that’s when the current state started.`;
+  if(d.from <= c.from) return `Choose a time after the current record starts: ${fmt(c.from)}.`;
   if(statusChanged && d.st === 'no' && sc.session) return 'Charger 01 has an active session. Stop it in Live charging first.';
   if(statusChanged && d.st === 'ok' && !sc.fields) return 'Fill in Partner, Location and Individual clients rate first.';
   const cm = (d.comment || '').trim();
   const rs = d.st === 'no' ? d.reason : '';
-  const c2 = cur();
-  if(d.from > c2.from){ recs.push({id:++seq, from:d.from, st:d.st, reason:rs, comment:cm, by:ME}); }
-  else { c2.st = d.st; c2.reason = rs; c2.comment = cm; c2.by = ME; }
+  recs.push({id:++seq, from:d.from, st:d.st, reason:rs, comment:cm, by:ME});
+  recs = rebuildTimeline(recs).map(r => ({...r, isNew:undefined}));
+  return null;
+}
+function commitCurrentDetails(d){
+  const c = cur();
+  if(!d.from) return 'Enter a date and time.';
+  if(d.from > NOW) return 'The date can’t be in the future.';
+  if(d.from < c.from) return `Choose a time no earlier than the current record starts: ${fmt(c.from)}.`;
+  c.from = d.from;
+  c.comment = (d.comment || '').trim();
+  c.by = ME;
   recs = rebuildTimeline(recs).map(r => ({...r, isNew:undefined}));
   return null;
 }
 function gSaveDraft(){
   const c = cur(), d = gDraft; if(!d) return;
-  if(!gChanged(c, d)){ gClear(); render(); return; }
-  const err = commitStatus(d);
+  const recordChanged = gChanged(c, d);
+  if(!recordChanged && !gDetailsChanged(c, d)){ gClear(); render(); return; }
+  const err = recordChanged ? commitStatus(d) : commitCurrentDetails(d);
   if(err){ const box = document.getElementById('gErr'); if(box) box.innerHTML = `<div class="err">${err}</div>`; return; }
   gClear();
   render();
@@ -1540,6 +1572,12 @@ document.querySelectorAll('#ctlVar button').forEach(a => a.onclick = () => {
   availCtl = a.dataset.v;
   gClear();
   document.querySelectorAll('#ctlVar button').forEach(x => x.classList.toggle('on', x === a));
+  render();
+});
+document.querySelectorAll('#generalDetailVar button').forEach(button => button.onclick = () => {
+  generalDetailMode = button.dataset.v;
+  gClear();
+  document.querySelectorAll('#generalDetailVar button').forEach(item => item.classList.toggle('on', item === button));
   render();
 });
 document.querySelectorAll('#tableVar button').forEach(button => button.onclick = () => {
